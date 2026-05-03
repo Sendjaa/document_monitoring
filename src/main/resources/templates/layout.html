@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="id" xmlns:th="http://www.thymeleaf.org"
+      xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title th:text="${pageTitle != null ? pageTitle + ' - DocMonitor' : 'DocMonitor'}">DocMonitor</title>
+
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+
+    <!-- Bootstrap Icons -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
+
+    <!-- Custom CSS -->
+    <link th:href="@{/css/style.css}" rel="stylesheet">
+</head>
+<body>
+
+<!-- SIDEBAR -->
+<aside class="sidebar">
+    <div class="sidebar-logo">
+        <div class="logo-icon">📄</div>
+        <h1>DocMonitor</h1>
+        <p>Sistem Monitoring Dokumen</p>
+    </div>
+
+    <nav class="sidebar-nav">
+        <div class="nav-section-label">Utama</div>
+        <a th:href="@{/dashboard}" class="nav-item" th:classappend="${activeMenu == 'dashboard'} ? 'active'">
+            <i class="bi bi-speedometer2"></i> Dashboard
+        </a>
+        <a th:href="@{/dokumen}" class="nav-item" th:classappend="${activeMenu == 'dokumen'} ? 'active'">
+            <i class="bi bi-folder2-open"></i> Dokumen Saya
+        </a>
+        <a th:href="@{/dokumen/tambah}" class="nav-item" th:classappend="${activeMenu == 'tambah'} ? 'active'">
+            <i class="bi bi-plus-circle"></i> Tambah Dokumen
+        </a>
+        <a th:href="@{/dokumen/upload-foto}" class="nav-item" th:classappend="${activeMenu == 'upload-foto'} ? 'active'">
+            <i class="bi bi-camera"></i> Scan Foto (AI)
+        </a>
+
+        <div class="nav-section-label" sec:authorize="hasRole('ADMIN')">Administrasi</div>
+        <a th:href="@{/admin}" class="nav-item" th:classappend="${activeMenu == 'admin'} ? 'active'" sec:authorize="hasRole('ADMIN')">
+            <i class="bi bi-shield-check"></i> Panel Admin
+        </a>
+        <a th:href="@{/admin/users}" class="nav-item" th:classappend="${activeMenu == 'admin-users'} ? 'active'" sec:authorize="hasRole('ADMIN')">
+            <i class="bi bi-people"></i> Kelola User
+        </a>
+        <a th:href="@{/admin/kategori}" class="nav-item" th:classappend="${activeMenu == 'kategori'} ? 'active'" sec:authorize="hasRole('ADMIN')">
+            <i class="bi bi-tags"></i> Kategori
+        </a>
+    </nav>
+
+    <div class="sidebar-footer">
+        <div class="user-info">
+            <div class="user-avatar" th:text="${#strings.substring(currentUser?.name, 0, 1)}">U</div>
+            <div>
+                <div class="user-name" th:text="${currentUser?.name}">User</div>
+                <div class="user-role" th:text="${currentUser?.role}">USER</div>
+            </div>
+        </div>
+        <a th:href="@{/auth/logout}" class="nav-item mt-2" style="color:rgba(255,255,255,.5)">
+            <i class="bi bi-box-arrow-right"></i> Keluar
+        </a>
+    </div>
+</aside>
+
+<!-- MAIN -->
+<div class="main-content">
+    <div class="top-bar">
+        <div class="top-bar-title" th:text="${pageTitle ?: 'Dashboard'}">Dashboard</div>
+        <div class="top-bar-actions">
+            <a th:href="@{/dokumen/upload-foto}" class="btn btn-accent btn-sm">
+                <i class="bi bi-camera-fill"></i> Scan Dokumen AI
+            </a>
+        </div>
+    </div>
+
+    <div class="page-body">
+        <!-- Flash messages -->
+        <div class="alert alert-success" th:if="${success}" th:text="${success}"></div>
+        <div class="alert alert-danger" th:if="${error}" th:text="${error}"></div>
+
+        <!-- Content fragment -->
+        <th:block th:replace="${contentFragment}"></th:block>
+    </div>
+</div>
+
+</body>
+</html>

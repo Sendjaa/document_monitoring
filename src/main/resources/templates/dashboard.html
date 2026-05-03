@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html lang="id" xmlns:th="http://www.thymeleaf.org"
+      xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard - DocMonitor</title>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
+    <link th:href="@{/css/style.css}" rel="stylesheet">
+</head>
+<body>
+
+<!-- SIDEBAR -->
+<aside class="sidebar">
+    <div class="sidebar-logo">
+        <div class="logo-icon">📄</div>
+        <h1>DocMonitor</h1>
+        <p>Sistem Monitoring Dokumen</p>
+    </div>
+
+    <nav class="sidebar-nav">
+        <div class="nav-section-label">Utama</div>
+        <a th:href="@{/dashboard}" class="nav-item active">
+            <i class="bi bi-speedometer2"></i> Dashboard
+        </a>
+        <a th:href="@{/dokumen}" class="nav-item">
+            <i class="bi bi-folder2-open"></i> Dokumen Saya
+        </a>
+        <a th:href="@{/dokumen/tambah}" class="nav-item">
+            <i class="bi bi-plus-circle"></i> Tambah Dokumen
+        </a>
+        <a th:href="@{/dokumen/upload-foto}" class="nav-item">
+            <i class="bi bi-camera"></i> Scan Foto (AI)
+        </a>
+
+        <div class="nav-section-label" sec:authorize="hasRole('ADMIN')">Administrasi</div>
+        <a th:href="@{/admin}" class="nav-item" sec:authorize="hasRole('ADMIN')">
+            <i class="bi bi-shield-check"></i> Panel Admin
+        </a>
+        <a th:href="@{/admin/users}" class="nav-item" sec:authorize="hasRole('ADMIN')">
+            <i class="bi bi-people"></i> Kelola User
+        </a>
+        <a th:href="@{/admin/kategori}" class="nav-item" sec:authorize="hasRole('ADMIN')">
+            <i class="bi bi-tags"></i> Kategori
+        </a>
+    </nav>
+
+    <div class="sidebar-footer">
+        <div class="user-info">
+            <div class="user-avatar" th:text="${#strings.substring(currentUser?.name, 0, 1)}">U</div>
+            <div>
+                <div class="user-name" th:text="${currentUser?.name}">User</div>
+                <div class="user-role" th:text="${currentUser?.role}">USER</div>
+            </div>
+        </div>
+        <a th:href="@{/auth/logout}" class="nav-item mt-2" style="color:rgba(255,255,255,.5)">
+            <i class="bi bi-box-arrow-right"></i> Keluar
+        </a>
+    </div>
+</aside>
+
+<!-- MAIN -->
+<div class="main-content">
+    <div class="top-bar">
+        <div class="top-bar-title">Dashboard</div>
+        <div class="top-bar-actions">
+            <a th:href="@{/dokumen/upload-foto}" class="btn btn-accent btn-sm">
+                <i class="bi bi-camera-fill"></i> Scan Dokumen AI
+            </a>
+        </div>
+    </div>
+
+    <div class="page-body">
+        <!-- Flash Messages -->
+        <div class="alert alert-success" th:if="${success}">
+            <i class="bi bi-check-circle-fill"></i> <span th:text="${success}"></span>
+        </div>
+
+        <!-- Welcome Banner -->
+        <div style="background:linear-gradient(135deg,#0f4c81,#1a6db5);border-radius:16px;padding:28px 32px;margin-bottom:24px;display:flex;align-items:center;justify-content:space-between;">
+            <div>
+                <p style="color:rgba(255,255,255,.7);font-size:13px;margin-bottom:4px;">Selamat datang kembali,</p>
+                <h2 style="color:#fff;font-size:22px;font-weight:800;margin-bottom:6px;" th:text="${currentUser.name}">User</h2>
+                <p style="color:rgba(255,255,255,.65);font-size:13px;">
+                    <i class="bi bi-calendar3"></i>
+                    <span th:text="${#dates.format(#dates.createNow(), 'EEEE, dd MMMM yyyy')}">Hari ini</span>
+                </p>
+            </div>
+            <div style="font-size:64px;opacity:.3;">📋</div>
+        </div>
+
+        <!-- Stat Cards -->
+        <div class="stat-grid">
+            <div class="stat-card">
+                <div class="stat-icon blue"><i class="bi bi-folder2-open"></i></div>
+                <div>
+                    <div class="stat-value" th:text="${totalDokumen}">0</div>
+                    <div class="stat-label">Total Dokumen</div>
+                </div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-icon green"><i class="bi bi-check-circle"></i></div>
+                <div>
+                    <div class="stat-value" th:text="${dokumenAktif}">0</div>
+                    <div class="stat-label">Dokumen Aktif</div>
+                </div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-icon orange"><i class="bi bi-clock-history"></i></div>
+                <div>
+                    <div class="stat-value" th:text="${dokumenAkanHabis}">0</div>
+                    <div class="stat-label">Akan Berakhir</div>
+                </div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-icon red"><i class="bi bi-x-circle"></i></div>
+                <div>
+                    <div class="stat-value" th:text="${dokumenKadaluarsa}">0</div>
+                    <div class="stat-label">Kadaluarsa</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Recent Documents -->
+        <div class="card">
+            <div class="card-header">
+                <h3><i class="bi bi-clock" style="color:#0f4c81;margin-right:6px;"></i> Dokumen Terbaru</h3>
+                <a th:href="@{/dokumen}" style="font-size:13px;color:#0f4c81;text-decoration:none;font-weight:600;">
+                    Lihat Semua <i class="bi bi-arrow-right"></i>
+                </a>
+            </div>
+            <div class="card-body" style="padding:0;">
+                <div th:if="${#lists.isEmpty(recentDokumen)}" style="padding:40px;text-align:center;color:#94a3b8;">
+                    <div style="font-size:48px;margin-bottom:12px;">📂</div>
+                    <p style="font-weight:600;">Belum ada dokumen</p>
+                    <p style="font-size:13px;margin-top:4px;">Mulai tambahkan dokumen Anda</p>
+                    <div style="margin-top:16px;display:flex;gap:10px;justify-content:center;">
+                        <a th:href="@{/dokumen/tambah}" class="btn btn-primary btn-sm">
+                            <i class="bi bi-plus"></i> Tambah Manual
+                        </a>
+                        <a th:href="@{/dokumen/upload-foto}" class="btn btn-accent btn-sm">
+                            <i class="bi bi-camera"></i> Scan Foto AI
+                        </a>
+                    </div>
+                </div>
+
+                <div class="table-wrapper" th:unless="${#lists.isEmpty(recentDokumen)}">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Nama Dokumen</th>
+                                <th>Kategori</th>
+                                <th>Tanggal Berakhir</th>
+                                <th>Sisa Hari</th>
+                                <th>Status</th>
+                                <th>Aksi</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr th:each="dok : ${recentDokumen}">
+                                <td>
+                                    <div style="font-weight:600;color:#0f172a;" th:text="${dok.namaDokumen}">-</div>
+                                    <div style="font-size:11px;color:#94a3b8;" th:if="${dok.user != null}" th:text="${dok.user.name}"></div>
+                                </td>
+                                <td>
+                                    <span th:if="${dok.kategori != null}" th:text="${dok.kategori.namaKategori}"
+                                          style="background:#f1f5f9;padding:3px 10px;border-radius:20px;font-size:12px;font-weight:600;color:#475569;">-</span>
+                                    <span th:unless="${dok.kategori != null}" style="color:#cbd5e1;font-size:12px;">-</span>
+                                </td>
+                                <td th:text="${dok.tanggalBerakhir != null ? dok.tanggalBerakhir : '-'}">-</td>
+                                <td>
+                                    <span th:if="${dok.tanggalBerakhir != null}">
+                                        <span th:text="${dok.sisaHari >= 0 ? dok.sisaHari + ' hari' : 'Kadaluarsa'}"
+                                              th:style="${dok.sisaHari < 0 ? 'color:#ef4444;font-weight:700' : (dok.sisaHari <= 30 ? 'color:#f59e0b;font-weight:700' : 'color:#10b981;font-weight:600')}">
+                                        </span>
+                                    </span>
+                                    <span th:unless="${dok.tanggalBerakhir != null}" style="color:#cbd5e1;">-</span>
+                                </td>
+                                <td>
+                                    <span class="badge"
+                                          th:classappend="${dok.status.name() == 'AKTIF'} ? 'badge-aktif' : (${dok.status.name() == 'AKAN_HABIS'} ? 'badge-akan-habis' : 'badge-kadaluarsa')"
+                                          th:text="${dok.status.label}">-</span>
+                                </td>
+                                <td>
+                                    <a th:href="@{/dokumen/{id}(id=${dok.dokumenId})}" class="btn btn-outline btn-sm">
+                                        <i class="bi bi-eye"></i>
+                                    </a>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- Quick Actions -->
+        <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-top:20px;">
+            <a th:href="@{/dokumen/tambah}" style="text-decoration:none;">
+                <div class="card" style="padding:20px;text-align:center;cursor:pointer;transition:box-shadow .2s;" onmouseover="this.style.boxShadow='0 4px 20px rgba(0,0,0,.12)'" onmouseout="this.style.boxShadow=''">
+                    <div style="font-size:36px;margin-bottom:10px;">➕</div>
+                    <div style="font-weight:700;font-size:14px;color:#0f172a;">Tambah Dokumen</div>
+                    <div style="font-size:12px;color:#94a3b8;margin-top:4px;">Input manual</div>
+                </div>
+            </a>
+            <a th:href="@{/dokumen/upload-foto}" style="text-decoration:none;">
+                <div class="card" style="padding:20px;text-align:center;cursor:pointer;transition:box-shadow .2s;" onmouseover="this.style.boxShadow='0 4px 20px rgba(0,0,0,.12)'" onmouseout="this.style.boxShadow=''">
+                    <div style="font-size:36px;margin-bottom:10px;">📸</div>
+                    <div style="font-weight:700;font-size:14px;color:#0f172a;">Scan Foto AI</div>
+                    <div style="font-size:12px;color:#94a3b8;margin-top:4px;">Ekstrasi otomatis dengan Gemini</div>
+                </div>
+            </a>
+            <a th:href="@{/dokumen}" style="text-decoration:none;">
+                <div class="card" style="padding:20px;text-align:center;cursor:pointer;transition:box-shadow .2s;" onmouseover="this.style.boxShadow='0 4px 20px rgba(0,0,0,.12)'" onmouseout="this.style.boxShadow=''">
+                    <div style="font-size:36px;margin-bottom:10px;">📋</div>
+                    <div style="font-weight:700;font-size:14px;color:#0f172a;">Semua Dokumen</div>
+                    <div style="font-size:12px;color:#94a3b8;margin-top:4px;">Kelola & pantau</div>
+                </div>
+            </a>
+        </div>
+    </div>
+</div>
+
+</body>
+</html>
