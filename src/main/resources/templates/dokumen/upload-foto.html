@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="id" xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+
+<body th:replace="~{layout/app :: page('Scan Foto AI', ~{::page-content}, ~{fragments/empty :: empty})}">
+
+    <th:block th:fragment="page-content">
+        <div class="page-header">
+            <div>
+                <h1 class="page-title">Scan Foto AI</h1>
+                <p class="page-subtitle">Upload foto dokumen dan biarkan AI mengekstrak informasi secara otomatis</p>
+            </div>
+        </div>
+
+        <div class="content-card">
+            <div class="features-grid">
+                <div class="feature-card">
+                    <div class="feature-icon"><i class="bi bi-cpu"></i></div>
+                    <div class="feature-title">AI Powered</div>
+                    <div class="feature-desc">Google Gemini Vision untuk ekstraksi otomatis</div>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon"><i class="bi bi-lightning"></i></div>
+                    <div class="feature-title">Cepat</div>
+                    <div class="feature-desc">Proses ekstraksi dalam hitungan detik</div>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon"><i class="bi bi-shield-check"></i></div>
+                    <div class="feature-title">Akurat</div>
+                    <div class="feature-desc">Teknologi OCR terkini untuk hasil presisi</div>
+                </div>
+            </div>
+
+            <form th:action="@{/dokumen/upload-foto}" method="post" enctype="multipart/form-data" id="uploadForm">
+                <div class="upload-area" id="uploadArea">
+                    <div class="upload-icon"><i class="bi bi-cloud-upload"></i></div>
+                    <div class="upload-title">Upload Foto Dokumen</div>
+                    <div class="upload-subtitle">
+                        Seret dan lepas file foto di sini atau klik untuk memilih<br>
+                        Format: JPG, JPEG, PNG (Max: 10MB)
+                    </div>
+                    <input type="file" id="fotoFile" name="fotoFile" class="file-input" accept="image/*" required>
+                    <button type="button" class="btn btn-primary"
+                        onclick="document.getElementById('fotoFile').click()">
+                        <i class="bi bi-folder2-open"></i> Pilih File
+                    </button>
+                </div>
+
+                <div class="preview-area" id="previewArea">
+                    <img id="previewImage" class="preview-image" alt="Preview">
+                    <div class="preview-info">
+                        <h3>Informasi File</h3>
+                        <p><strong>Nama:</strong> <span id="fileName">-</span></p>
+                        <p><strong>Ukuran:</strong> <span id="fileSize">-</span></p>
+                        <p><strong>Tipe:</strong> <span id="fileType">-</span></p>
+                    </div>
+                </div>
+
+                <div class="form-actions" id="formActions" style="display: none;">
+                    <button type="submit" class="btn btn-success">
+                        <i class="bi bi-magic"></i> Ekstrak dengan AI
+                    </button>
+                    <button type="button" class="btn btn-secondary" onclick="resetForm()">
+                        <i class="bi bi-arrow-clockwise"></i> Reset
+                    </button>
+                    <a th:href="@{/dokumen}" class="btn btn-secondary">
+                        <i class="bi bi-arrow-left"></i> Kembali
+                    </a>
+                </div>
+            </form>
+        </div>
+
+        <div class="processing-overlay" id="processingOverlay">
+            <div class="processing-modal">
+                <div class="processing-icon"><i class="bi bi-cpu"></i></div>
+                <div class="processing-title">Sedang Memproses...</div>
+                <div class="processing-subtitle">AI sedang mengekstrak informasi dari dokumen Anda</div>
+            </div>
+        </div>
+        <script>
+            const uploadArea = document.getElementById('uploadArea');
+            const fileInput = document.getElementById('fotoFile');
+            const previewArea = document.getElementById('previewArea');
+            const previewImage = document.getElementById('previewImage');
+            const formActions = document.getElementById('formActions');
+            const uploadForm = document.getElementById('uploadForm');
+            const processingOverlay = document.getElementById('processingOverlay');
+
+            uploadArea.addEventListener('dragover', (e) => {
+                e.preventDefault();
+                uploadArea.classList.add('dragover');
+            });
+            uploadArea.addEventListener('dragleave', () => uploadArea.classList.remove('dragover'));
+            uploadArea.addEventListener('drop', (e) => {
+                e.preventDefault();
+                uploadArea.classList.remove('dragover');
+                if (e.dataTransfer.files.length > 0) handleFileSelect(e.dataTransfer.files[0]);
+            });
+            fileInput.addEventListener('change', (e) => {
+                if (e.target.files.length > 0) handleFileSelect(e.target.files[0]);
+            });
+            uploadArea.addEventListener('click', () => fileInput.click());
+
+            function handleFileSelect(file) {
+                if (!file.type.startsWith('image/')) {
+                    alert('Harap pilih file gambar (JPG, JPEG, PNG)');
+                    return;
+                }
+                if (file.size > 10 * 1024 * 1024) {
+                    alert('Ukuran file tidak boleh lebih dari 10MB');
+                    return;
+                }
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    previewImage.src = e.target.result;
+                    document.getElementById('fileName').textContent = file.name;
+                    document.getElementById('fileSize').textContent = formatFileSize(file.size);
+                    document.getElementById('fileType').textContent = file.type;
+                    uploadArea.style.display = 'none';
+                    previewArea.style.display = 'block';
+                    formActions.style.display = 'flex';
+                };
+                reader.readAsDataURL(file);
+            }
+
+            function formatFileSize(bytes) {
+                if (bytes === 0) return '0 Bytes';
+                const k = 1024;
+                const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+                const i = Math.floor(Math.log(bytes) / Math.log(k));
+                return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+            }
+
+            function resetForm() {
+                fileInput.value = '';
+                uploadArea.style.display = 'block';
+                previewArea.style.display = 'none';
+                formActions.style.display = 'none';
+                previewImage.src = '';
+            }
+
+            uploadForm.addEventListener('submit', () => {
+                processingOverlay.style.display = 'flex';
+            });
+        </script>
+    </th:block>
+
+</body>
+
+</html>

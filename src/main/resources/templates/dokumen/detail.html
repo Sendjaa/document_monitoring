@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="id" xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+
+<body th:replace="~{layout/app :: page('Detail Dokumen', ~{::page-content}, ~{::top-actions})}">
+
+    <th:block th:fragment="top-actions">
+        <div class="flex gap-2.5">
+            <a th:href="@{/dokumen/edit/{id}(id=${dokumen.dokumenId})}" 
+               class="inline-flex items-center gap-2 px-3.5 py-2 text-xs font-semibold text-slate-700 bg-slate-100 hover:bg-slate-200 active:bg-slate-300 rounded-lg transition-colors border border-transparent duration-150 no-underline">
+                <i class="bi bi-pencil-square"></i> Edit Dokumen
+            </a>
+            <a th:href="@{/dokumen}" 
+               class="inline-flex items-center gap-2 px-3.5 py-2 text-xs font-semibold text-slate-500 bg-white hover:bg-slate-50 active:bg-slate-100 rounded-lg transition-colors border border-slate-200 duration-150 no-underline">
+                <i class="bi bi-arrow-left"></i> Kembali
+            </a>
+        </div>
+    </th:block>
+
+    <th:block th:fragment="page-content">
+        <script src="https://cdn.tailwindcss.com"></script>
+        
+        <div class="text-slate-900 antialiased tracking-tight font-sans mx-auto max-w-6xl px-4 py-6">
+            
+            <div class="flex justify-between items-start mb-6 pb-4 border-b border-slate-200">
+                <div>
+                    <div class="flex items-center gap-3 mb-1">
+                        <h1 class="text-xl font-bold text-slate-900" th:text="${dokumen.namaDokumen}">Nama Dokumen</h1>
+                        <span th:if="${isBersama}" class="inline-flex items-center px-2 py-0.5 rounded-md text-xs font-semibold bg-indigo-50 text-indigo-700 border border-indigo-200/60">Bersama</span>
+                        <span th:unless="${isBersama}" class="inline-flex items-center px-2 py-0.5 rounded-md text-xs font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200/60">Pribadi</span>
+                    </div>
+                    <p class="text-xs text-slate-500">Sistem Monitoring Berkas Elektronik • DocMonitor</p>
+                </div>
+            </div>
+
+            <div th:if="${successPeserta}" class="p-3 mb-5 rounded-lg text-xs font-medium border flex items-center gap-2 text-emerald-700 bg-emerald-50 border-emerald-200">
+                <i class="bi bi-check-circle-fill text-emerald-500 text-sm"></i> <span th:text="${successPeserta}"></span>
+            </div>
+            <div th:if="${errorPeserta}" class="p-3 mb-5 rounded-lg text-xs font-medium border flex items-center gap-2 text-rose-700 bg-rose-50 border-rose-200">
+                <i class="bi bi-exclamation-circle-fill text-rose-500 text-sm"></i> <span th:text="${errorPeserta}"></span>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-5 mb-6">
+                <div class="bg-white border border-slate-200 rounded-xl p-5 shadow-sm">
+                    <div class="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-4 pb-2 border-b border-dashed border-slate-200">Metadata Berkas</div>
+                    <div class="flex justify-between items-center py-2 border-b border-slate-50/50"><span class="text-xs text-slate-500">ID Dokumen</span><span class="text-xs font-mono font-semibold text-slate-800" th:text="${dokumen.dokumenId}">-</span></div>
+                    <div class="flex justify-between items-center py-2 border-b border-slate-50/50"><span class="text-xs text-slate-500">Kategori</span><span class="text-xs font-semibold text-slate-800" th:text="${dokumen.kategori?.namaKategori ?: 'Tidak ada'}">-</span></div>
+                    <div class="flex justify-between items-center pt-2"><span class="text-xs text-slate-500">Status Logik</span>
+                        <span class="inline-flex items-center px-2 py-0.5 rounded text-[11px] font-bold text-white" 
+                              th:classappend="${dokumen.status.name() == 'AKTIF' ? 'bg-emerald-600' : (dokumen.status.name() == 'AKAN_HABIS' ? 'bg-amber-500' : 'bg-rose-600')}"
+                              th:text="${dokumen.status.label}">-</span>
+                    </div>
+                </div>
+
+                <div class="bg-white border border-slate-200 rounded-xl p-5 shadow-sm">
+                    <div class="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-4 pb-2 border-b border-dashed border-slate-200">Masa Berlaku</div>
+                    <div class="flex justify-between items-center py-2 border-b border-slate-50/50"><span class="text-xs text-slate-500">Tanggal Mulai</span><span class="text-xs font-semibold text-slate-800" th:text="${dokumen.tanggalMulai}">-</span></div>
+                    <div class="flex justify-between items-center py-2 border-b border-slate-50/50"><span class="text-xs text-slate-500">Tanggal Selesai</span><span class="text-xs font-semibold text-slate-800" th:text="${dokumen.tanggalBerakhir}">-</span></div>
+                    <div class="flex justify-between items-center pt-2"><span class="text-xs text-slate-500">Sisa Waktu</span>
+                        <span class="text-xs font-bold" th:classappend="${dokumen.sisaHari <= 30 ? 'text-orange-600' : 'text-emerald-600'}"
+                              th:text="${dokumen.sisaHari >= 0 ? dokumen.sisaHari + ' Hari Kalender' : 'Kadaluarsa'}">-</span>
+                    </div>
+                </div>
+
+                <div class="bg-white border border-slate-200 rounded-xl p-5 shadow-sm">
+                    <div class="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-4 pb-2 border-b border-dashed border-slate-200">Hak Kepemilikan</div>
+                    <div class="flex justify-between items-center py-2 border-b border-slate-50/50"><span class="text-xs text-slate-500">Penanggung Jawab</span><span class="text-xs font-semibold text-slate-800" th:text="${dokumen.user?.name ?: '-'}">-</span></div>
+                    <div class="flex justify-between items-center py-2 border-b border-slate-50/50"><span class="text-xs text-slate-500">Email Akun</span><span class="text-xs font-medium text-slate-500 max-w-[150px] truncate" th:text="${dokumen.user?.email ?: '-'}">-</span></div>
+                    <div class="flex justify-between items-center pt-2"><span class="text-xs text-slate-500">Role Akses</span><span class="text-xs font-bold text-indigo-600" th:text="${dokumen.user?.role ?: '-'}">-</span></div>
+                </div>
+            </div>
+
+            <div class="bg-slate-50 border border-slate-200 rounded-xl p-4 flex items-center justify-between gap-4 mb-6 shadow-sm" th:if="${dokumen.filePath != null}">
+                <div class="flex items-center gap-3 min-w-0">
+                    <div class="w-10 h-10 bg-rose-100 text-rose-600 rounded-lg flex items-center justify-center text-lg flex-shrink-0">
+                        <i class="bi bi-file-earmark-pdf-fill"></i>
+                    </div>
+                    <div class="min-w-0">
+                        <div class="text-xs font-semibold text-slate-900 truncate" th:text="${dokumen.filePath}">filename.pdf</div>
+                        <div class="text-[11px] text-slate-500">Berkas berkualifikasi digital terlampir</div>
+                    </div>
+                </div>
+                <a th:href="@{/dokumen/download/{id}(id=${dokumen.dokumenId})}" 
+                   class="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-slate-700 bg-white hover:bg-slate-100 border border-slate-200 rounded-lg transition-colors no-underline">
+                    <i class="bi bi-cloud-download"></i> Unduh Berkas
+                </a>
+            </div>
+            <div class="p-5 border border-dashed border-slate-200 rounded-xl text-center text-slate-400 mb-6 text-xs bg-white" th:unless="${dokumen.filePath != null}">
+                <i class="bi bi-layers opacity-60 d-block mb-1 text-base"></i> Tidak ada file fisik terlampir pada instansi data monitoring ini.
+            </div>
+
+            <div th:if="${isBersama}" class="bg-white border border-slate-200 rounded-xl p-6 mb-6 shadow-sm">
+                <div class="flex justify-between items-center mb-5">
+                    <div>
+                        <h2 class="text-sm font-bold text-slate-900">Akses Kolaborator</h2>
+                        <p class="text-xs text-slate-500"><span class="font-semibold text-indigo-600" th:text="${pesertaList != null ? pesertaList.size() : 0}">0</span> Pengguna memiliki izin visibilitas grup</p>
+                    </div>
+                    <button type="button" onclick="toggleFormUndang()" 
+                            class="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-semibold text-slate-700 bg-white hover:bg-slate-50 border border-slate-200 rounded-lg transition-colors">
+                        <i class="bi bi-plus-lg"></i> Tambah Pengguna
+                    </button>
+                </div>
+
+                <div id="form-undang" class="hidden bg-slate-50 border border-slate-200 rounded-lg p-4 mb-4 transition-all duration-150">
+                    <form th:action="@{/dokumen/{id}/peserta/tambah(id=${dokumen.dokumenId})}" method="post">
+                        <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}" />
+                        <div class="flex gap-2 items-center">
+                            <input type="email" name="emailPeserta" placeholder="Masukkan alamat email rekan kerja..." required
+                                   class="block w-full px-3 py-1.5 text-xs bg-white border border-slate-200 rounded-lg focus:outline-none focus:border-slate-400 focus:ring-0 text-slate-900 placeholder:text-slate-400 h-9" />
+                            <button type="submit" class="text-xs font-semibold text-white bg-slate-950 hover:bg-slate-900 active:bg-black px-4 py-1.5 rounded-lg transition-colors h-9 whitespace-nowrap">
+                                Kirim Undangan
+                            </button>
+                        </div>
+                    </form>
+                </div>
+
+                <div th:if="${pesertaList == null or pesertaList.isEmpty()}" class="py-6 text-center text-slate-400 text-xs">
+                    Belum ada kolaborator eksternal yang diizinkan memantau dokumen ini.
+                </div>
+
+                <div th:unless="${pesertaList == null or pesertaList.isEmpty()}" class="space-y-2">
+                    <div th:each="p : ${pesertaList}" class="flex items-center justify-between p-3 bg-slate-50 hover:bg-slate-100/70 border border-slate-200/80 rounded-lg transition-all duration-150">
+                        <div class="flex items-center gap-3">
+                            <div class="w-8 h-8 bg-indigo-50 text-indigo-600 rounded-full flex items-center justify-center text-xs font-semibold border border-indigo-100">
+                                <i class="bi bi-person"></i>
+                            </div>
+                            <div>
+                                <div class="text-xs font-semibold text-slate-800" th:text="${p.emailPeserta}">email</div>
+                                <div th:if="${p.namaPeserta != null}" class="text-[10px] text-slate-400 text-capitalize mt-0.5" th:text="${p.namaPeserta}">nama</div>
+                            </div>
+                        </div>
+                        <form th:action="@{/dokumen/{id}/peserta/hapus(id=${dokumen.dokumenId})}" method="post"
+                              onsubmit="return confirm('Hapus akses untuk ' + this.querySelector('input[name=emailPeserta]').value + '?')">
+                            <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}" />
+                            <input type="hidden" name="emailPeserta" th:value="${p.emailPeserta}" />
+                            <button type="submit" class="text-xs font-medium text-rose-600 hover:text-rose-700 hover:bg-rose-50/60 px-2 py-1 rounded transition-all duration-150 border border-transparent">
+                                Cabut Akses
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+
+            <div class="flex items-center justify-end gap-2 pt-4 border-t border-slate-200 mt-6">
+                <form th:action="@{/dokumen/hapus/{id}(id=${dokumen.dokumenId})}" method="post"
+                      onsubmit="return confirm('Hapus data monitoring berkas ini secara permanen?')">
+                    <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}" />
+                    <button type="submit" class="text-xs font-semibold text-rose-600 hover:text-rose-700 hover:bg-rose-50 px-3 py-1.5 rounded-lg transition-all duration-150">
+                        <i class="bi bi-trash"></i> Hapus Berkas Permanen
+                    </button>
+                </form>
+            </div>
+        </div>
+
+        <script>
+            function toggleFormUndang() {
+                var el = document.getElementById('form-undang');
+                // Menggunakan utility class 'hidden' milik Tailwind untuk kontrol toggle
+                if (el.classList.contains('hidden')) {
+                    el.classList.remove('hidden');
+                    el.querySelector('input[type=email]').focus();
+                } else {
+                    el.classList.add('hidden');
+                }
+            }
+        </script>
+    </th:block>
+
+</body>
+</html>

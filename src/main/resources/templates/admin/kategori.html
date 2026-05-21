@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="id" xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+
+<body th:replace="~{layout/app :: page('Kategori Dokumen', ~{::page-content}, ~{::top-actions})}">
+
+    <th:block th:fragment="top-actions">
+        <a th:href="@{/admin}" class="flex items-center gap-2 px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 text-sm font-semibold rounded-lg transition-all">
+            <i class="bi bi-arrow-left"></i> Kembali
+        </a>
+    </th:block>
+
+    <th:block th:fragment="page-content">
+        <div class="mb-8">
+            <h1 class="text-2xl font-extrabold text-slate-900">Kategori Dokumen</h1>
+            <p class="text-slate-500 text-sm mt-1">Kelola kategori untuk mengorganisir dokumen Anda</p>
+        </div>
+
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            <div class="lg:col-span-1">
+                <div class="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm sticky top-24">
+                    <h3 class="font-bold text-slate-800 mb-6 flex items-center gap-2">
+                        <i class="bi bi-plus-circle text-indigo-600"></i> Tambah Kategori
+                    </h3>
+                    <form th:action="@{/admin/kategori/tambah}" method="post" class="space-y-4">
+                        <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}" />
+                        
+                        <div>
+                            <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Nama Kategori *</label>
+                            <input type="text" name="namaKategori" required placeholder="Contoh: KTP, SIM"
+                                   class="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-indigo-500 text-sm">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Deskripsi</label>
+                            <input type="text" name="deskripsi" placeholder="Deskripsi singkat..."
+                                   class="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-indigo-500 text-sm">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Tipe Kategori</label>
+                            <select name="tipe" class="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-indigo-500 text-sm">
+                                <option value="INDIVIDU">Individu</option>
+                                <option value="KELOMPOK">Kelompok</option>
+                            </select>
+                        </div>
+                        <div class="pt-2">
+                            <button type="submit" class="w-full px-4 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-sm rounded-xl transition-all">
+                                Tambah Kategori
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <div class="lg:col-span-2">
+                <div th:if="${#lists.isEmpty(kategoriList)}" class="bg-white p-12 text-center rounded-2xl border border-slate-200">
+                    <i class="bi bi-tags text-4xl text-slate-300"></i>
+                    <h3 class="text-sm font-semibold text-slate-600 mt-4">Belum ada kategori</h3>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4" th:unless="${#lists.isEmpty(kategoriList)}">
+                    <div th:each="kategori : ${kategoriList}" class="bg-white p-5 rounded-2xl border border-slate-200 hover:border-indigo-200 transition-all shadow-sm">
+                        <div class="flex justify-between items-start mb-3">
+                            <div class="w-10 h-10 bg-indigo-50 text-indigo-600 rounded-xl flex items-center justify-center">
+                                <i class="bi bi-tag"></i>
+                            </div>
+                            <form th:action="@{/admin/kategori/hapus/{id}(id=${kategori.kategoriId})}" method="post"
+                                  onsubmit="return confirm('Yakin ingin menghapus kategori ini?')">
+                                <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}" />
+                                <button type="submit" class="text-slate-400 hover:text-rose-500 transition-colors">
+                                    <i class="bi bi-trash"></i>
+                                </button>
+                            </form>
+                        </div>
+                        <h4 class="font-bold text-slate-800 text-lg" th:text="${kategori.namaKategori}">-</h4>
+                        <p class="text-xs text-slate-500 mt-1 mb-4" th:text="${kategori.deskripsi ?: 'Tidak ada deskripsi'}">-</p>
+                        
+                        <div class="flex items-center justify-between pt-4 border-t border-slate-50 text-[11px] font-bold text-slate-400 uppercase tracking-wider">
+                            <span class="px-2 py-1 bg-slate-100 rounded-lg text-slate-600" th:text="${kategori.tipe.displayName}">-</span>
+                            <span>
+                                <i class="bi bi-files mr-1"></i>
+                                <span th:text="${kategori.dokumenCount ?: 0}">0</span> Dokumen
+                            </span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </th:block>
+</body>
+</html>

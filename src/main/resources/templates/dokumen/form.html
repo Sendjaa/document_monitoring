@@ -1,0 +1,310 @@
+<!DOCTYPE html>
+<html lang="id" xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+<head>
+    <meta charset="UTF-8" />
+    <title>Tambah Dokumen</title>
+</head>
+<body th:replace="~{layout/app :: page('Tambah Dokumen', ~{::page-content}, ~{fragments/empty :: empty})}">
+
+    <th:block th:fragment="page-content">
+        <div class="mb-6 pb-5 border-b border-slate-200 max-w-6xl mx-auto">
+            <h1 class="text-2xl font-bold text-slate-900 tracking-tight">Tambah Dokumen Baru</h1>
+            <p class="text-sm text-slate-500 mt-1">Masukkan data informasi dokumen secara lengkap untuk memulai pelacakan masa berlaku.</p>
+        </div>
+
+        <div class="bg-white rounded-xl border border-slate-200/80 shadow-sm w-full overflow-hidden mx-auto max-w-6xl">
+            <form th:action="@{/dokumen/tambah}" th:object="${dokumenDTO}" method="post" enctype="multipart/form-data" class="p-4 sm:p-6 md:p-8 space-y-6">
+                
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-5 md:gap-6">
+                    <div class="space-y-2">
+                        <label for="namaDokumen" class="block text-sm font-semibold text-slate-700">Nama Dokumen <span class="text-rose-500">*</span></label>
+                        <input type="text" id="namaDokumen" th:field="*{namaDokumen}" placeholder="e.g. Surat Perjanjian Kontrak Kerja 2026"
+                            class="w-full px-3.5 py-2 border border-slate-300 rounded-lg text-sm bg-white text-slate-900 shadow-sm transition placeholder:text-slate-400 focus:outline-none focus:border-indigo-600 focus:ring-2 focus:ring-indigo-600/10"
+                            th:classappend="${#fields.hasErrors('namaDokumen')} ? '!border-rose-500 !ring-rose-500/10' : ''" required="required" />
+                        <div th:if="${#fields.hasErrors('namaDokumen')}" class="text-xs font-medium text-rose-600 mt-1 flex items-center gap-1" th:errors="*{namaDokumen}"></div>
+                    </div>
+
+                    <div>
+                        <div class="space-y-2 hidden animate-fadeIn" id="section-dropdown-pribadi">
+                            <label for="kategoriId-pribadi" class="block text-sm font-semibold text-slate-700">Tipe Spesifik Dokumen <span class="text-rose-500">*</span></label>
+                            <select id="kategoriId-pribadi" onchange="syncKategoriId(this.value)"
+                                class="w-full px-3.5 py-2 border border-slate-300 rounded-lg text-sm bg-white text-slate-900 shadow-sm focus:outline-none focus:border-indigo-600 focus:ring-2 focus:ring-indigo-600/10">
+                                <option value="">-- Pilih --</option>
+                            </select>
+                        </div>
+
+                        <div id="section-dropdown-bersama" class="space-y-2 hidden animate-fadeIn">
+                            <label for="kategoriId-bersama" class="block text-sm font-semibold text-slate-700">Kategori Dokumen Bersama <span class="text-rose-500">*</span></label>
+                            <select id="kategoriId-bersama" onchange="syncKategoriId(this.value)"
+                                class="w-full px-3.5 py-2 border border-slate-300 rounded-lg text-sm bg-white text-slate-900 shadow-sm focus:outline-none focus:border-indigo-600 focus:ring-2 focus:ring-indigo-600/10">
+                                <option value="">-- Pilih Kategori --</option>
+                                <th:block th:each="kat : ${kategoriBersama}">
+                                    <option th:value="${kat.kategoriId}" th:text="${kat.namaKategori}">Kategori</option>
+                                </th:block>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="space-y-2.5">
+                    <label class="block text-sm font-semibold text-slate-700">Jenis Dokumen <span class="text-rose-500">*</span></label>
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <button type="button" id="btn-pribadi" onclick="pilihJenis('PRIBADI')"
+                            class="flex items-start gap-4 p-4 border-2 border-slate-200 rounded-xl bg-white text-left transition hover:border-slate-300 focus:outline-none">
+                            <div class="w-10 h-10 shrink-0 rounded-lg bg-slate-100 flex items-center justify-center text-slate-600 border border-slate-200 icon-wrapper transition-colors">
+                                <i class="bi bi-person-fill text-lg"></i>
+                            </div>
+                            <div class="flex-1 min-w-0">
+                                <h4 class="text-sm font-bold text-slate-800 tracking-tight transition-colors title-text">Dokumen Pribadi</h4>
+                                <p class="text-xs text-slate-500 mt-0.5 leading-normal">Hanya dapat diakses dan dikelola oleh Anda sendiri.</p>
+                            </div>
+                        </button>
+
+                        <button type="button" id="btn-bersama" onclick="pilihJenis('BERSAMA')"
+                            class="flex items-start gap-4 p-4 border-2 border-slate-200 rounded-xl bg-white text-left transition hover:border-slate-300 focus:outline-none">
+                            <div class="w-10 h-10 shrink-0 rounded-lg bg-slate-100 flex items-center justify-center text-slate-600 border border-slate-200 icon-wrapper transition-colors">
+                                <i class="bi bi-people-fill text-lg"></i>
+                            </div>
+                            <div class="flex-1 min-w-0">
+                                <h4 class="text-sm font-bold text-slate-800 tracking-tight transition-colors title-text">Dokumen Bersama</h4>
+                                <p class="text-xs text-slate-500 mt-0.5 leading-normal">Dapat diakses bersama anggota tim/peserta eksternal.</p>
+                            </div>
+                        </button>
+                    </div>
+                    <input type="hidden" id="jenisDokumen" name="jenisDokumen" value="" />
+                </div>
+
+                <div id="section-subkat-pribadi" class="space-y-3 hidden animate-fadeIn">
+                    <div class="space-y-2">
+                        <label class="block text-sm font-semibold text-slate-700">Kategori Kelompok <span class="text-rose-500">*</span></label>
+                        <div class="flex flex-wrap gap-2">
+                            <button type="button" class="chip-subkat flex items-center gap-1.5 px-3.5 py-2 border border-slate-200 rounded-full bg-white text-xs font-semibold text-slate-600 shadow-sm transition hover:bg-slate-50" data-subkat="Identitas" onclick="pilihSubKat(this)">
+                                <i class="bi bi-card-text text-sm text-slate-400"></i> Identitas
+                            </button>
+                            <button type="button" class="chip-subkat flex items-center gap-1.5 px-3.5 py-2 border border-slate-200 rounded-full bg-white text-xs font-semibold text-slate-600 shadow-sm transition hover:bg-slate-50" data-subkat="Pendidikan" onclick="pilihSubKat(this)">
+                                <i class="bi bi-mortarboard text-sm text-slate-400"></i> Pendidikan
+                            </button>
+                            <button type="button" class="chip-subkat flex items-center gap-1.5 px-3.5 py-2 border border-slate-200 rounded-full bg-white text-xs font-semibold text-slate-600 shadow-sm transition hover:bg-slate-50" data-subkat="Legalitas" onclick="pilihSubKat(this)">
+                                <i class="bi bi-file-earmark-text text-sm text-slate-400"></i> Legalitas
+                            </button>
+                            <button type="button" class="chip-subkat flex items-center gap-1.5 px-3.5 py-2 border border-slate-200 rounded-full bg-white text-xs font-semibold text-slate-600 shadow-sm transition hover:bg-slate-50" data-subkat="Kendaraan" onclick="pilihSubKat(this)">
+                                <i class="bi bi-car-front text-sm text-slate-400"></i> Kendaraan
+                            </button>
+                            <button type="button" class="chip-subkat flex items-center gap-1.5 px-3.5 py-2 border border-slate-200 rounded-full bg-white text-xs font-semibold text-slate-600 shadow-sm transition hover:bg-slate-50" data-subkat="Keuangan" onclick="pilihSubKat(this)">
+                                <i class="bi bi-wallet2 text-sm text-slate-400"></i> Keuangan
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <input type="hidden" id="kategoriId" th:field="*{kategoriId}" />
+
+                <div id="data-subkat" class="hidden" aria-hidden="true">
+                    <th:block th:each="entry : ${subGroupedPribadi}">
+                        <span class="subkat-group" th:attr="data-subkat=${entry.key}">
+                            <th:block th:each="kat : ${entry.value}">
+                                <span class="subkat-item" th:attr="data-id=${kat.kategoriId},data-nama=${kat.namaKategori}"></span>
+                            </th:block>
+                        </span>
+                    </th:block>
+                </div>
+
+                <div id="section-peserta" class="hidden bg-slate-50 border border-slate-200 rounded-xl p-4 md:p-5 space-y-3 mt-2 border-l-4 border-l-indigo-600 animate-fadeIn">
+                    <div>
+                        <h3 class="text-sm font-bold text-slate-800 flex items-center gap-2">
+                            <i class="bi bi-people-fill text-indigo-600 text-base"></i> Kolaborator & Peserta
+                        </h3>
+                        <p class="text-xs text-slate-500 mt-0.5">Masukkan alamat email orang yang berhak mengakses berkas bersama ini.</p>
+                    </div>
+                    
+                    <div id="peserta-list" class="space-y-2.5">
+                        <div class="peserta-input-row flex gap-2">
+                            <input type="email" name="emailPeserta" placeholder="name@company.com"
+                                class="flex-1 px-3 py-1.5 border border-slate-300 rounded-lg text-xs bg-white text-slate-900 focus:outline-none focus:border-indigo-600" />
+                            <button type="button" onclick="tambahPeserta()" 
+                                class="inline-flex items-center gap-1.5 px-3.5 py-1.5 border border-transparent text-xs font-semibold rounded-lg text-white bg-indigo-600 hover:bg-indigo-700 shadow-sm transition shrink-0">
+                                <i class="bi bi-plus-lg"></i> Tambah
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-5 md:gap-6">
+                    <div class="space-y-2">
+                        <label for="tanggalMulai" class="block text-sm font-semibold text-slate-700">Tanggal Terbit / Mulai <span class="text-rose-500">*</span></label>
+                        <input type="date" id="tanggalMulai" th:field="*{tanggalMulai}"
+                            class="w-full px-3.5 py-2 border border-slate-300 rounded-lg text-sm bg-white text-slate-900 shadow-sm focus:outline-none focus:border-indigo-600 focus:ring-2 focus:ring-indigo-600/10"
+                            th:classappend="${#fields.hasErrors('tanggalMulai')} ? '!border-rose-500 !ring-rose-500/10' : ''" required="required" />
+                        <div th:if="${#fields.hasErrors('tanggalMulai')}" class="text-xs font-medium text-rose-600 mt-1" th:errors="*{tanggalMulai}"></div>
+                    </div>
+                    <div class="space-y-2">
+                        <label for="tanggalBerakhir" class="block text-sm font-semibold text-slate-700">Tanggal Kedaluwarsa <span class="text-rose-500">*</span></label>
+                        <input type="date" id="tanggalBerakhir" th:field="*{tanggalBerakhir}"
+                            class="w-full px-3.5 py-2 border border-slate-300 rounded-lg text-sm bg-white text-slate-900 shadow-sm focus:outline-none focus:border-indigo-600 focus:ring-2 focus:ring-indigo-600/10"
+                            th:classappend="${#fields.hasErrors('tanggalBerakhir')} ? '!border-rose-500 !ring-rose-500/10' : ''" required="required" />
+                        <div th:if="${#fields.hasErrors('tanggalBerakhir')}" class="text-xs font-medium text-rose-600 mt-1" th:errors="*{tanggalBerakhir}"></div>
+                    </div>
+                </div>
+
+                <div class="space-y-2">
+                    <label for="file" class="block text-sm font-semibold text-slate-700">Berkas Lampiran <span class="text-xs font-normal text-slate-400">(Opsional)</span></label>
+                    <div class="mt-1 flex justify-center px-4 py-6 md:px-6 md:pt-5 md:pb-6 border-2 border-slate-300 border-dashed rounded-xl bg-slate-50/50 hover:bg-slate-50 transition-colors">
+                        <div class="space-y-2 text-center w-full">
+                            <i class="bi bi-cloud-arrow-up text-3xl text-slate-400 block mb-1"></i>
+                            <div class="flex text-sm text-slate-600 justify-center flex-wrap gap-1">
+                                <label for="file" class="relative cursor-pointer bg-transparent font-semibold text-indigo-600 hover:text-indigo-700 focus-within:outline-none">
+                                    <span>Pilih dokumen</span>
+                                    <input id="file" name="file" type="file" class="sr-only" accept=".pdf,.doc,.docx,.jpg,.jpeg,.png" onchange="updateFileNameDisplay(this)" />
+                                </label>
+                                <p class="text-slate-500">atau seret ke sini</p>
+                            </div>
+                            <p id="file-name-preview" class="text-xs font-medium text-indigo-600 mt-1 truncate max-w-xs mx-auto px-2"></p>
+                            <p class="text-[10px] md:text-[11px] text-slate-400 uppercase tracking-wider font-medium">PDF, DOCX, ATAU GAMBAR MAX 10MB</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="pt-4 border-t border-slate-100 flex flex-col-reverse sm:flex-row items-stretch sm:items-center justify-end gap-3">
+                    <a th:href="@{/dokumen}" class="px-4 py-2 border border-slate-300 rounded-lg text-sm font-semibold text-slate-700 bg-white hover:bg-slate-50 shadow-sm transition text-center">
+                        Batal
+                    </a>
+                    <button type="submit" class="px-5 py-2 border border-transparent text-sm font-semibold rounded-lg text-white bg-indigo-600 hover:bg-indigo-700 shadow-sm transition flex items-center justify-center gap-2">
+                        <i class="bi bi-save-fill"></i> Simpan Dokumen
+                    </button>
+                </div>
+            </form>
+        </div>
+
+        <style>
+            .btn-jenis-active {
+                border-color: #4f46e5 !important;
+                background-color: #f5f3ff !important;
+            }
+            .btn-jenis-active .icon-wrapper {
+                background-color: #eef2ff !important;
+                border-color: #c7d2fe !important;
+                color: #4f46e5 !important;
+            }
+            .btn-jenis-active .title-text {
+                color: #4f46e5 !important;
+            }
+            .chip-subkat-active {
+                border-color: #4f46e5 !important;
+                background-color: #4f46e5 !important;
+                color: #ffffff !important;
+            }
+            .chip-subkat-active i {
+                color: #ffffff !important;
+            }
+            .animate-fadeIn {
+                animation: fadeIn 0.25s ease-out forwards;
+            }
+            @keyframes fadeIn {
+                from { opacity: 0; transform: translateY(4px); }
+                to { opacity: 1; transform: translateY(0); }
+            }
+        </style>
+
+        <script>
+            // ── Load Object Sub-Kategori dari DOM ──
+            var subKatData = {};
+            document.querySelectorAll('.subkat-group').forEach(function(grp) {
+                var key = grp.getAttribute('data-subkat');
+                subKatData[key] = [];
+                grp.querySelectorAll('.subkat-item').forEach(function(item) {
+                    subKatData[key].push({
+                        id: item.getAttribute('data-id'),
+                        nama: item.getAttribute('data-nama')
+                    });
+                });
+            });
+
+            // ── Menangani Toggle Jenis Dokumen ──
+            function pilihJenis(jenis) {
+                document.getElementById('jenisDokumen').value = jenis;
+                var btnP = document.getElementById('btn-pribadi');
+                var btnB = document.getElementById('btn-bersama');
+                btnP.classList.remove('btn-jenis-active');
+                btnB.classList.remove('btn-jenis-active');
+                document.getElementById('kategoriId').value = '';
+
+                if (jenis === 'PRIBADI') {
+                    btnP.classList.add('btn-jenis-active');
+                    showEl('section-subkat-pribadi');
+                    hideEl('section-dropdown-bersama');
+                    hideEl('section-peserta');
+                    document.querySelectorAll('.chip-subkat').forEach(function(c) { c.classList.remove('chip-subkat-active'); });
+                    hideEl('section-dropdown-pribadi');
+                } else {
+                    btnB.classList.add('btn-jenis-active');
+                    showEl('section-dropdown-bersama');
+                    hideEl('section-subkat-pribadi');
+                    showEl('section-peserta');
+                    document.querySelectorAll('.peserta-input-row:not(:first-child)').forEach(function(r) { r.remove(); });
+                    document.querySelectorAll('input[name="emailPeserta"]').forEach(function(i) { i.value = ''; });
+                }
+            }
+
+            // ── Menangani Pilihan Chips Sub-Kategori ──
+            function pilihSubKat(el) {
+                document.querySelectorAll('.chip-subkat').forEach(function(c) { c.classList.remove('chip-subkat-active'); });
+                el.classList.add('chip-subkat-active');
+
+                var subkat = el.getAttribute('data-subkat');
+                var items = subKatData[subkat] || [];
+
+                var select = document.getElementById('kategoriId-pribadi');
+                select.innerHTML = '<option value="">-- Pilih Spesifik ' + subkat + ' --</option>';
+                items.forEach(function(item) {
+                    var label = item.nama.replace(subkat + ' - ', '');
+                    var opt = document.createElement('option');
+                    opt.value = item.id;
+                    opt.textContent = label;
+                    select.appendChild(opt);
+                });
+
+                showEl('section-dropdown-pribadi');
+                document.getElementById('kategoriId').value = '';
+            }
+
+            // ── Sinkronisasi nilai ID ke hidden field server ──
+            function syncKategoriId(val) {
+                document.getElementById('kategoriId').value = val;
+            }
+
+            // ── Menambahkan Baris Form Input Email Peserta ──
+            function tambahPeserta() {
+                var list = document.getElementById('peserta-list');
+                var row = document.createElement('div');
+                row.className = 'peserta-input-row flex gap-2 animate-fadeIn';
+                row.innerHTML = '<input type="email" name="emailPeserta" placeholder="name@company.com"'
+                    + ' class="flex-1 px-3 py-1.5 border border-slate-300 rounded-lg text-xs bg-white text-slate-900 focus:outline-none focus:border-indigo-600" />'
+                    + '<button type="button" onclick="this.parentElement.remove()" '
+                    + ' class="inline-flex items-center justify-center p-2 text-rose-500 hover:text-rose-700 bg-rose-50 hover:bg-rose-100 rounded-lg transition-colors shrink-0">'
+                    + '<i class="bi bi-trash-fill text-sm"></i></button>';
+                list.appendChild(row);
+            }
+
+            // ── Menampilkan Nama File Setelah Dipilih ──
+            function updateFileNameDisplay(input) {
+                var preview = document.getElementById('file-name-preview');
+                if(input.files && input.files.length > 0) {
+                    preview.innerHTML = '<i class="bi bi-file-earmark-check"></i> ' + input.files[0].name;
+                } else {
+                    preview.innerText = '';
+                }
+            }
+
+            // Helper Utility UI
+            function showEl(id) { 
+                var el = document.getElementById(id);
+                if(el) el.classList.remove('hidden'); 
+            }
+            function hideEl(id) { 
+                var el = document.getElementById(id);
+                if(el) el.classList.add('hidden'); 
+            }
+        </script>
+    </th:block>
+</body>
+</html>

@@ -1,0 +1,5 @@
+<!-- Layout terpusat: gunakan layout/app.html + fragments/sidebar.html -->
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<body th:replace="~{layout/app :: page(${pageTitle}, ${content}, ${topActions})}"></body>
+</html>
