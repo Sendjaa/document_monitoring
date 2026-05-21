@@ -23,7 +23,7 @@ public class DataInitializer implements CommandLineRunner {
     private final PasswordEncoder passwordEncoder;
 
     // Constructor
-    public DataInitializer(UserRepository userRepository, KategoriDokumenRepository kategoriRepository, 
+    public DataInitializer(UserRepository userRepository, KategoriDokumenRepository kategoriRepository,
                           PasswordEncoder passwordEncoder) {
         this.userRepository = userRepository;
         this.kategoriRepository = kategoriRepository;
