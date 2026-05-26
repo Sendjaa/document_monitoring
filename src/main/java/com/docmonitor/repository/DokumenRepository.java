@@ -6,12 +6,22 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
+import org.springframework.data.jpa.repository.EntityGraph; // Pastikan import ini ada
 
 import java.time.LocalDate;
 import java.util.List;
+import java.util.Optional; // Pastikan import ini ada
 
 @Repository
 public interface DokumenRepository extends JpaRepository<Dokumen, Long> {
+
+    /**
+     * Memaksa fetch data kategori dan user agar tidak terjadi error "no Session"
+     * saat diakses di thread asinkron (@Async).
+     */
+    @Override
+    @EntityGraph(attributePaths = {"kategori", "user"})
+    Optional<Dokumen> findById(Long id);
 
     /**
      * Cari semua dokumen milik user tertentu.

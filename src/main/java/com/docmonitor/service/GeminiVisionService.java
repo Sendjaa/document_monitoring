@@ -31,13 +31,14 @@ public class GeminiVisionService {
     private final ObjectMapper objectMapper = new ObjectMapper();
 
     private final OkHttpClient httpClient = new OkHttpClient.Builder()
-        .connectTimeout(30, TimeUnit.SECONDS)
-        .readTimeout(60, TimeUnit.SECONDS)
-        .writeTimeout(60, TimeUnit.SECONDS)
-        .build();
+            .connectTimeout(30, TimeUnit.SECONDS)
+            .readTimeout(60, TimeUnit.SECONDS)
+            .writeTimeout(60, TimeUnit.SECONDS)
+            .build();
 
     /**
      * Ekstrak data dokumen dari gambar menggunakan Gemini Vision API.
+     * 
      * @param imageFile file gambar/foto dokumen
      * @return DTO berisi data yang diekstrak
      */
@@ -64,57 +65,58 @@ public class GeminiVisionService {
 
     private String buildPrompt() {
         return """
-            Analisis gambar dokumen ini dan ekstrak informasi berikut dalam format JSON.
-            HANYA kembalikan JSON murni tanpa markdown, tanpa penjelasan tambahan.
-            
-            Format JSON yang diharapkan:
-            {
-              "namaDokumen": "nama/judul dokumen yang tertera",
-              "tanggalMulai": "YYYY-MM-DD atau null jika tidak ada",
-              "tanggalBerakhir": "YYYY-MM-DD atau null jika tidak ada",
-              "namaKategori": "jenis dokumen (contoh: KTP, SIM, Paspor, STNK, Kontrak, Sertifikat, Ijazah, dll)",
-              "deskripsiTambahan": "informasi penting lainnya yang tertera di dokumen"
-            }
-            
-            Catatan:
-            - Jika tanggal dalam format DD/MM/YYYY atau DD-MM-YYYY, konversikan ke YYYY-MM-DD
-            - Jika informasi tidak ditemukan, isi dengan null
-            - namaDokumen wajib diisi, minimal dari jenis dokumen yang terlihat
-            """;
+                Tugas Anda adalah menjadi ekstraktor data dokumen yang sangat presisi.
+                Analisis gambar ini dan ekstrak informasi ke format JSON.
+
+                ATURAN KETAT:
+                1. HANYA ekstrak informasi yang TERLIHAT JELAS dalam dokumen.
+                2. Jika informasi (seperti tanggal atau nama) TIDAK DITEMUKAN, isi dengan null. JANGAN MENGARANG atau MENEBAK.
+                3. Pastikan format tanggal adalah YYYY-MM-DD.
+                4. HANYA kembalikan JSON murni, tanpa pembuka/penutup markdown, tanpa basa-basi.
+
+                Format JSON:
+                {
+                  "namaDokumen": "Tulis judul dokumen. Jika tidak ada judul, gunakan nama jenis dokumen yang terlihat.",
+                  "tanggalMulai": "YYYY-MM-DD atau null",
+                  "tanggalBerakhir": "YYYY-MM-DD atau null",
+                  "namaKategori": "Pilih dari kategori: KTP, SIM, Paspor, STNK, Kontrak, Sertifikat, Ijazah, Lainnya.",
+                  "deskripsiTambahan": "Informasi penting lainnya atau null"
+                }
+                """;
     }
 
     private String buildRequestBody(String base64Image, String mimeType, String prompt) throws IOException {
         String requestTemplate = """
-            {
-              "contents": [
                 {
-                  "parts": [
+                  "contents": [
                     {
-                      "text": "%s"
-                    },
-                    {
-                      "inline_data": {
-                        "mime_type": "%s",
-                        "data": "%s"
-                      }
+                      "parts": [
+                        {
+                          "text": "%s"
+                        },
+                        {
+                          "inline_data": {
+                            "mime_type": "%s",
+                            "data": "%s"
+                          }
+                        }
+                      ]
                     }
-                  ]
+                  ],
+                  "generationConfig": {
+                    "temperature": 0.0,
+                    "response_mime_type": "application/json"
+                  }
                 }
-              ],
-              "generationConfig": {
-                "temperature": 0.1,
-                "maxOutputTokens": 1000
-              }
-            }
-            """;
+                """;
 
         // Escape prompt untuk JSON
         String escapedPrompt = prompt
-            .replace("\\", "\\\\")
-            .replace("\"", "\\\"")
-            .replace("\n", "\\n")
-            .replace("\r", "\\r")
-            .replace("\t", "\\t");
+                .replace("\\", "\\\\")
+                .replace("\"", "\\\"")
+                .replace("\n", "\\n")
+                .replace("\r", "\\r")
+                .replace("\t", "\\t");
 
         return String.format(requestTemplate, escapedPrompt, mimeType, base64Image);
     }
@@ -124,10 +126,10 @@ public class GeminiVisionService {
 
         RequestBody body = RequestBody.create(requestBody, MediaType.parse("application/json"));
         Request request = new Request.Builder()
-            .url(fullUrl)
-            .post(body)
-            .addHeader("Content-Type", "application/json")
-            .build();
+                .url(fullUrl)
+                .post(body)
+                .addHeader("Content-Type", "application/json")
+                .build();
 
         try (Response response = httpClient.newCall(request).execute()) {
             if (!response.isSuccessful()) {
@@ -150,13 +152,13 @@ public class GeminiVisionService {
 
             // Ambil teks dari response Gemini
             String textContent = root
-                .path("candidates")
-                .path(0)
-                .path("content")
-                .path("parts")
-                .path(0)
-                .path("text")
-                .asText("");
+                    .path("candidates")
+                    .path(0)
+                    .path("content")
+                    .path("parts")
+                    .path(0)
+                    .path("text")   
+                    .asText("");
 
             log.info("Gemini extracted text: {}", textContent);
 
@@ -173,7 +175,7 @@ public class GeminiVisionService {
             dto.setTanggalBerakhir(parseDate(getTextOrDefault(extracted, "tanggalBerakhir", null)));
 
             log.info("Berhasil ekstrak dokumen: nama={}, kategori={}, berakhir={}",
-                dto.getNamaDokumen(), dto.getNamaKategori(), dto.getTanggalBerakhir());
+                    dto.getNamaDokumen(), dto.getNamaKategori(), dto.getTanggalBerakhir());
 
         } catch (Exception e) {
             log.error("Gagal parse response Gemini: {}", e.getMessage());
@@ -185,12 +187,16 @@ public class GeminiVisionService {
     }
 
     private String cleanJsonString(String text) {
-        if (text == null || text.isBlank()) return "{}";
+        if (text == null || text.isBlank())
+            return "{}";
         // Remove markdown code blocks
         text = text.trim();
-        if (text.startsWith("```json")) text = text.substring(7);
-        if (text.startsWith("```")) text = text.substring(3);
-        if (text.endsWith("```")) text = text.substring(0, text.length() - 3);
+        if (text.startsWith("```json"))
+            text = text.substring(7);
+        if (text.startsWith("```"))
+            text = text.substring(3);
+        if (text.endsWith("```"))
+            text = text.substring(0, text.length() - 3);
         return text.trim();
     }
 
@@ -200,6 +206,7 @@ public class GeminiVisionService {
             return defaultValue;
         }
         return fieldNode.asText().trim();
+        
     }
 
     private LocalDate parseDate(String dateStr) {
@@ -207,13 +214,23 @@ public class GeminiVisionService {
             return null;
         }
         // Coba berbagai format tanggal
-        String[] formats = {"yyyy-MM-dd", "dd/MM/yyyy", "dd-MM-yyyy", "MM/dd/yyyy", "yyyy/MM/dd"};
+        String[] formats = { "yyyy-MM-dd", "dd/MM/yyyy", "dd-MM-yyyy", "MM/dd/yyyy", "yyyy/MM/dd" };
         for (String fmt : formats) {
             try {
                 return LocalDate.parse(dateStr, DateTimeFormatter.ofPattern(fmt));
-            } catch (DateTimeParseException ignored) {}
+            } catch (DateTimeParseException ignored) {
+            }
         }
         log.warn("Tidak dapat parse tanggal: {}", dateStr);
         return null;
     }
+    
+    @SuppressWarnings("unused")
+    private void validateResult(JsonNode node) {
+    // Pastikan nama dokumen tidak berisi teks default AI yang aneh
+    String nama = node.path("namaDokumen").asText();
+    if (nama.contains("mungkin") || nama.contains("sepertinya")) {
+        throw new RuntimeException("AI memberikan jawaban spekulatif, membatalkan ekstraksi.");
+    }
+}
 }

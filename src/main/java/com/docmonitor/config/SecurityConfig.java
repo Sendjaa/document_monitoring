@@ -23,6 +23,7 @@ public class SecurityConfig {
             .authorizeHttpRequests(auth -> auth
                 .requestMatchers("/auth/**", "/css/**", "/js/**", "/images/**", "/webjars/**", "/h2-console/**", "/static/**").permitAll()
                 .requestMatchers("/admin/**").hasRole("ADMIN")
+                .requestMatchers("/dokumen/download/**").authenticated()
                 .anyRequest().authenticated()
             )
             .formLogin(form -> form

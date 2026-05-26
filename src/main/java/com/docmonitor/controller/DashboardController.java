@@ -1,5 +1,6 @@
 package com.docmonitor.controller;
 
+import com.docmonitor.model.Dokumen;
 import com.docmonitor.model.StatusDokumen;
 import com.docmonitor.model.User;
 import com.docmonitor.service.DokumenService;
@@ -7,6 +8,10 @@ import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
+
+import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.List;
 
 @Controller
 public class DashboardController {
@@ -17,6 +22,7 @@ public class DashboardController {
     public DashboardController(DokumenService dokumenService) {
         this.dokumenService = dokumenService;
     }
+
     @GetMapping("/")
     public String home() {
         return "redirect:/dashboard";
@@ -42,19 +48,33 @@ public class DashboardController {
             model.addAttribute("dokumenAktif", dokumenService.countByStatus(StatusDokumen.AKTIF));
             model.addAttribute("dokumenAkanHabis", dokumenService.countByStatus(StatusDokumen.AKAN_HABIS));
             model.addAttribute("dokumenKadaluarsa", dokumenService.countByStatus(StatusDokumen.KADALUARSA));
-            model.addAttribute("recentDokumen", dokumenService.findAll().stream().limit(5).toList());
+            model.addAttribute("recentDokumen", dokumenService.findAll().stream()
+                    .sorted(Comparator.comparing(Dokumen::getDokumenId).reversed())
+                    .limit(5).toList());
         } else {
-            // User biasa: lihat dokumen milik sendiri
+            // User biasa: lihat dokumen milik sendiri DAN dokumen kolaborasi
             Long userId = currentUser.getUserId();
-            model.addAttribute("totalDokumen", dokumenService.countByUser(userId));
-            model.addAttribute("dokumenAktif",
-                dokumenService.findByUser(userId).stream().filter(d -> d.getStatus() == StatusDokumen.AKTIF).count());
-            model.addAttribute("dokumenAkanHabis",
-                dokumenService.findByUser(userId).stream().filter(d -> d.getStatus() == StatusDokumen.AKAN_HABIS).count());
-            model.addAttribute("dokumenKadaluarsa",
-                dokumenService.findByUser(userId).stream().filter(d -> d.getStatus() == StatusDokumen.KADALUARSA).count());
-            model.addAttribute("recentDokumen",
-                dokumenService.findByUser(userId).stream().limit(5).toList());
+            
+            List<Dokumen> milikSendiri = dokumenService.findByUser(userId);
+            List<Dokumen> kolaborasi = dokumenService.findDokumenKolaborasi(userId);
+            
+            // Gabungkan keduanya
+            List<Dokumen> semuaDokumen = new ArrayList<>(milikSendiri);
+            semuaDokumen.addAll(kolaborasi);
+
+            // Statistik berdasarkan dokumen gabungan
+            model.addAttribute("totalDokumen", semuaDokumen.size());
+            model.addAttribute("dokumenAktif", 
+                semuaDokumen.stream().filter(d -> d.getStatus() == StatusDokumen.AKTIF).count());
+            model.addAttribute("dokumenAkanHabis", 
+                semuaDokumen.stream().filter(d -> d.getStatus() == StatusDokumen.AKAN_HABIS).count());
+            model.addAttribute("dokumenKadaluarsa", 
+                semuaDokumen.stream().filter(d -> d.getStatus() == StatusDokumen.KADALUARSA).count());
+            
+            // Recent dokumen dari gabungan, diurutkan dari yang terbaru
+            model.addAttribute("recentDokumen", semuaDokumen.stream()
+                    .sorted(Comparator.comparing(Dokumen::getDokumenId).reversed())
+                    .limit(5).toList());
         }
 
         model.addAttribute("isAdmin", isAdmin);

@@ -17,6 +17,7 @@ import java.io.IOException;
 import java.nio.file.*;
 import java.util.List;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 @Service
 public class DokumenService {
@@ -65,43 +66,40 @@ public class DokumenService {
                     .ifPresent(dokumen::setKategori);
         }
 
-        // Upload file jika ada
         if (file != null && !file.isEmpty()) {
             String savedPath = saveFile(file);
             dokumen.uploadFile(savedPath);
         }
 
-        // Set status awal
         dokumen.cekStatus(warningDays);
 
         Dokumen saved = dokumenRepository.save(dokumen);
 
-        // Simpan daftar peserta dan kirim undangan email jika dokumen bersama
         if (dto.getEmailPeserta() != null && !dto.getEmailPeserta().isEmpty()) {
             java.util.List<String> validEmails = new java.util.ArrayList<>();
+            java.util.List<String> validTokens = new java.util.ArrayList<>();
             for (String email : dto.getEmailPeserta()) {
                 if (email != null && !email.isBlank()) {
+                    String token = UUID.randomUUID().toString();
                     DokumenPeserta peserta = new DokumenPeserta(saved, email.trim(), null);
+                    peserta.setInviteToken(token);
+                    peserta.setAccepted(false);
                     dokumenPesertaRepository.save(peserta);
                     validEmails.add(email.trim());
+                    validTokens.add(token);
                 }
             }
-            // Kirim email undangan ke semua peserta
             if (!validEmails.isEmpty()) {
-                emailInviteService.kirimUndanganPeserta(saved, user, validEmails);
+                emailInviteService.kirimUndanganPeserta(saved.getDokumenId(), user, validEmails, validTokens);
             }
         }
 
-        // Buat sistem pengingat otomatis
         buatPengingat(saved, dto.getIntervalHari() != null ? dto.getIntervalHari() : 30);
 
         log.info("Dokumen berhasil disimpan: ID={}, Nama={}", saved.getDokumenId(), saved.getNamaDokumen());
         return saved;
     }
 
-    /**
-     * Simpan dokumen dari hasil ekstraksi LLM (foto).
-     */
     public Dokumen simpanDariEkstraksi(DokumenExtractDTO extractDTO, User user, MultipartFile imageFile)
             throws IOException {
         Dokumen dokumen = new Dokumen();
@@ -110,7 +108,6 @@ public class DokumenService {
         dokumen.setTanggalBerakhir(extractDTO.getTanggalBerakhir());
         dokumen.setUser(user);
 
-        // Auto-assign atau buat kategori berdasarkan hasil LLM
         if (extractDTO.getNamaKategori() != null && !extractDTO.getNamaKategori().isBlank()) {
             KategoriDokumen kategori = kategoriRepository
                     .findByNamaKategoriIgnoreCase(extractDTO.getNamaKategori())
@@ -125,18 +122,15 @@ public class DokumenService {
             dokumen.setKategori(kategori);
         }
 
-        // Simpan file gambar
         if (imageFile != null && !imageFile.isEmpty()) {
             String savedPath = saveFile(imageFile);
             dokumen.uploadFile(savedPath);
         }
 
-        // Tentukan status
         dokumen.cekStatus(warningDays);
 
         Dokumen saved = dokumenRepository.save(dokumen);
 
-        // Buat pengingat
         buatPengingat(saved, 30);
 
         log.info("Dokumen dari LLM berhasil disimpan: ID={}, Nama={}", saved.getDokumenId(), saved.getNamaDokumen());
@@ -161,10 +155,8 @@ public class DokumenService {
             dokumen.uploadFile(savedPath);
         }
 
-        // Update status
         dokumen.cekStatus(warningDays);
 
-        // Update interval pengingat
         if (dto.getIntervalHari() != null) {
             sistemPengingatRepository.findByDokumenDokumenId(id).ifPresent(p -> {
                 p.setIntervalHari(dto.getIntervalHari());
@@ -175,13 +167,25 @@ public class DokumenService {
         return dokumenRepository.save(dokumen);
     }
 
+    @Transactional // Wajib agar semua proses dianggap satu kesatuan
     public void hapusDokumen(Long id) {
+        // 1. Ambil dokumen untuk pengecekan file
         Dokumen dokumen = findById(id);
+
+        // 2. Hapus file fisik (sudah ada di kode Anda)
         if (dokumen.getFilePath() != null) {
             deleteFile(dokumen.getFilePath());
         }
+
+        // 3. Hapus data anak (Foreign Key) agar tidak melanggar constraint
+        // Pastikan Anda sudah inject repository yang dibutuhkan
+        notifikasiRepository.deleteByDokumen_DokumenId(id);
+        dokumenPesertaRepository.deleteByDokumen_DokumenId(id);
+
+        // 4. Terakhir, hapus entitas dokumen
         dokumenRepository.delete(dokumen);
-        log.info("Dokumen ID={} berhasil dihapus", id);
+
+        log.info("Dokumen ID={} beserta data terkait berhasil dihapus", id);
     }
 
     public Dokumen findById(Long id) {
@@ -214,8 +218,15 @@ public class DokumenService {
     }
 
     // =============================================
-    // Status Update (dipanggil Scheduler)
+    // Kolaborasi & Status
     // =============================================
+
+    public List<Dokumen> findDokumenKolaborasi(Long userId) {
+        return dokumenPesertaRepository.findByUser_UserIdAndAcceptedTrue(userId)
+                .stream()
+                .map(DokumenPeserta::getDokumen)
+                .collect(Collectors.toList());
+    }
 
     public void updateAllStatus() {
         List<Dokumen> allDokumen = dokumenRepository.findAll();
@@ -230,10 +241,6 @@ public class DokumenService {
         }
     }
 
-    // =============================================
-    // Statistics
-    // =============================================
-
     public long countByStatus(StatusDokumen status) {
         return dokumenRepository.countByStatus(status);
     }
@@ -246,7 +253,6 @@ public class DokumenService {
         return dokumenPesertaRepository.findByDokumen_DokumenId(dokumenId);
     }
 
-    
     public void tambahPeserta(Long dokumenId, String email) {
         Dokumen dokumen = findById(dokumenId);
         if (!dokumenPesertaRepository.existsByDokumen_DokumenIdAndEmailPeserta(dokumenId, email)) {
@@ -254,7 +260,6 @@ public class DokumenService {
         }
     }
 
-    
     @Transactional
     public void hapusPeserta(Long dokumenId, String email) {
         dokumenPesertaRepository.deleteByDokumen_DokumenIdAndEmailPeserta(dokumenId, email);
