@@ -12,6 +12,7 @@ public interface DokumenPesertaRepository extends JpaRepository<DokumenPeserta, 
     @Modifying
     List<DokumenPeserta> findByDokumen_DokumenId(Long dokumenId);
     void deleteByDokumen_DokumenIdAndEmailPeserta(Long dokumenId, String emailPeserta);
+    void deleteByDokumen_DokumenId(Long dokumenId);
     boolean existsByDokumen_DokumenIdAndEmailPeserta(Long dokumenId, String emailPeserta);
     
     List<DokumenPeserta> findByUserUserId(Long userId);

@@ -1,6 +1,9 @@
 package com.docmonitor.repository;
 
 import com.docmonitor.model.SistemPengingat;
+
+import jakarta.transaction.Transactional;
+
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.stereotype.Repository;
@@ -12,6 +15,9 @@ import java.util.Optional;
 public interface SistemPengingatRepository extends JpaRepository<SistemPengingat, Long> {
 
     Optional<SistemPengingat> findByDokumenDokumenId(Long dokumenId);
+
+    @Transactional
+    void deleteByDokumen_DokumenId(Long dokumenId);
 
     /**
      * Ambil semua pengingat yang dokumennya akan berakhir dan perlu dikirim notifikasi.

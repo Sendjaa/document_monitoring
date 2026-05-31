@@ -1,81 +1,127 @@
 <!DOCTYPE html>
 <html lang="id" xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
-
 <body th:replace="~{layout/app :: page('Scan Foto AI', ~{::page-content}, ~{fragments/empty :: empty})}">
 
     <th:block th:fragment="page-content">
-        <div class="page-header">
+
+        <!-- Header -->
+        <div class="flex justify-between items-center mb-6">
             <div>
-                <h1 class="page-title">Scan Foto AI</h1>
-                <p class="page-subtitle">Upload foto dokumen dan biarkan AI mengekstrak informasi secara otomatis</p>
+                <h1 class="text-2xl font-bold text-slate-800">Scan Foto AI</h1>
+                <p class="text-sm text-slate-500 mt-1">Upload foto dokumen dan biarkan AI mengekstrak informasi secara otomatis</p>
             </div>
         </div>
 
-        <div class="content-card">
-            <div class="features-grid">
-                <div class="feature-card">
-                    <div class="feature-icon"><i class="bi bi-cpu"></i></div>
-                    <div class="feature-title">AI Powered</div>
-                    <div class="feature-desc">Google Gemini Vision untuk ekstraksi otomatis</div>
+        <!-- Feature Cards -->
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
+            <div class="bg-white rounded-2xl shadow-sm p-5 flex items-start gap-4 border border-slate-100">
+                <div class="w-10 h-10 bg-indigo-100 text-indigo-600 rounded-xl flex items-center justify-center text-xl flex-shrink-0">
+                    <i class="bi bi-cpu"></i>
                 </div>
-                <div class="feature-card">
-                    <div class="feature-icon"><i class="bi bi-lightning"></i></div>
-                    <div class="feature-title">Cepat</div>
-                    <div class="feature-desc">Proses ekstraksi dalam hitungan detik</div>
-                </div>
-                <div class="feature-card">
-                    <div class="feature-icon"><i class="bi bi-shield-check"></i></div>
-                    <div class="feature-title">Akurat</div>
-                    <div class="feature-desc">Teknologi OCR terkini untuk hasil presisi</div>
+                <div>
+                    <div class="font-semibold text-slate-800 text-sm">AI Powered</div>
+                    <div class="text-xs text-slate-500 mt-0.5">Google Gemini Vision untuk ekstraksi otomatis</div>
                 </div>
             </div>
+            <div class="bg-white rounded-2xl shadow-sm p-5 flex items-start gap-4 border border-slate-100">
+                <div class="w-10 h-10 bg-yellow-100 text-yellow-600 rounded-xl flex items-center justify-center text-xl flex-shrink-0">
+                    <i class="bi bi-lightning"></i>
+                </div>
+                <div>
+                    <div class="font-semibold text-slate-800 text-sm">Cepat</div>
+                    <div class="text-xs text-slate-500 mt-0.5">Proses ekstraksi dalam hitungan detik</div>
+                </div>
+            </div>
+            <div class="bg-white rounded-2xl shadow-sm p-5 flex items-start gap-4 border border-slate-100">
+                <div class="w-10 h-10 bg-green-100 text-green-600 rounded-xl flex items-center justify-center text-xl flex-shrink-0">
+                    <i class="bi bi-shield-check"></i>
+                </div>
+                <div>
+                    <div class="font-semibold text-slate-800 text-sm">Akurat</div>
+                    <div class="text-xs text-slate-500 mt-0.5">Teknologi OCR terkini untuk hasil presisi</div>
+                </div>
+            </div>
+        </div>
 
+        <!-- Upload Card -->
+        <div class="bg-white rounded-2xl shadow-sm p-6 border border-slate-100">
             <form th:action="@{/dokumen/upload-foto}" method="post" enctype="multipart/form-data" id="uploadForm">
-                <div class="upload-area" id="uploadArea">
-                    <div class="upload-icon"><i class="bi bi-cloud-upload"></i></div>
-                    <div class="upload-title">Upload Foto Dokumen</div>
-                    <div class="upload-subtitle">
+
+                <!-- Upload Area -->
+                <div id="uploadArea"
+                    class="border-2 border-dashed border-slate-300 rounded-2xl p-10 flex flex-col items-center justify-center text-center cursor-pointer hover:border-indigo-400 hover:bg-indigo-50 transition-all"
+                    onclick="document.getElementById('fotoFile').click()">
+                    <div class="w-16 h-16 bg-indigo-100 text-indigo-500 rounded-2xl flex items-center justify-center text-3xl mb-4">
+                        <i class="bi bi-cloud-upload"></i>
+                    </div>
+                    <div class="text-base font-semibold text-slate-700 mb-1">Upload Foto Dokumen</div>
+                    <div class="text-sm text-slate-400 mb-5">
                         Seret dan lepas file foto di sini atau klik untuk memilih<br>
                         Format: JPG, JPEG, PNG (Max: 10MB)
                     </div>
-                    <input type="file" id="fotoFile" name="fotoFile" class="file-input" accept="image/*" required>
-                    <button type="button" class="btn btn-primary"
-                        onclick="document.getElementById('fotoFile').click()">
+                    <input type="file" id="fotoFile" name="fotoFile" class="hidden" accept="image/*" required>
+                    <button type="button"
+                        class="inline-flex items-center gap-2 px-5 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-semibold rounded-lg transition">
                         <i class="bi bi-folder2-open"></i> Pilih File
                     </button>
                 </div>
 
-                <div class="preview-area" id="previewArea">
-                    <img id="previewImage" class="preview-image" alt="Preview">
-                    <div class="preview-info">
-                        <h3>Informasi File</h3>
-                        <p><strong>Nama:</strong> <span id="fileName">-</span></p>
-                        <p><strong>Ukuran:</strong> <span id="fileSize">-</span></p>
-                        <p><strong>Tipe:</strong> <span id="fileType">-</span></p>
+                <!-- Preview Area -->
+                <div id="previewArea" class="hidden">
+                    <div class="flex flex-col sm:flex-row gap-6 items-start">
+                        <img id="previewImage" alt="Preview"
+                            class="w-full sm:w-64 h-48 object-cover rounded-xl border border-slate-200 flex-shrink-0">
+                        <div class="flex-1 bg-slate-50 rounded-xl p-5">
+                            <h3 class="font-semibold text-slate-700 mb-3 text-sm">Informasi File</h3>
+                            <div class="space-y-2 text-sm text-slate-600">
+                                <div class="flex gap-2">
+                                    <span class="font-medium w-16 text-slate-500">Nama</span>
+                                    <span id="fileName" class="text-slate-800">-</span>
+                                </div>
+                                <div class="flex gap-2">
+                                    <span class="font-medium w-16 text-slate-500">Ukuran</span>
+                                    <span id="fileSize" class="text-slate-800">-</span>
+                                </div>
+                                <div class="flex gap-2">
+                                    <span class="font-medium w-16 text-slate-500">Tipe</span>
+                                    <span id="fileType" class="text-slate-800">-</span>
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 </div>
 
-                <div class="form-actions" id="formActions" style="display: none;">
-                    <button type="submit" class="btn btn-success">
+                <!-- Form Actions -->
+                <div id="formActions" class="hidden flex-wrap gap-3 pt-5 mt-5 border-t border-slate-100">
+                    <button type="submit"
+                        class="inline-flex items-center gap-2 px-5 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-semibold rounded-lg transition">
                         <i class="bi bi-magic"></i> Ekstrak dengan AI
                     </button>
-                    <button type="button" class="btn btn-secondary" onclick="resetForm()">
+                    <button type="button" onclick="resetForm()"
+                        class="inline-flex items-center gap-2 px-5 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-600 text-sm font-semibold rounded-lg transition">
                         <i class="bi bi-arrow-clockwise"></i> Reset
                     </button>
-                    <a th:href="@{/dokumen}" class="btn btn-secondary">
+                    <a th:href="@{/dokumen}"
+                        class="inline-flex items-center gap-2 px-5 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-600 text-sm font-semibold rounded-lg transition">
                         <i class="bi bi-arrow-left"></i> Kembali
                     </a>
                 </div>
+
             </form>
         </div>
 
-        <div class="processing-overlay" id="processingOverlay">
-            <div class="processing-modal">
-                <div class="processing-icon"><i class="bi bi-cpu"></i></div>
-                <div class="processing-title">Sedang Memproses...</div>
-                <div class="processing-subtitle">AI sedang mengekstrak informasi dari dokumen Anda</div>
+        <!-- Processing Overlay -->
+        <div id="processingOverlay"
+            class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 hidden items-center justify-center">
+            <div class="bg-white rounded-2xl shadow-xl p-10 flex flex-col items-center text-center max-w-sm mx-4">
+                <div class="w-16 h-16 bg-indigo-100 text-indigo-600 rounded-2xl flex items-center justify-center text-3xl mb-4 animate-pulse">
+                    <i class="bi bi-cpu"></i>
+                </div>
+                <div class="text-lg font-bold text-slate-800 mb-1">Sedang Memproses...</div>
+                <div class="text-sm text-slate-500">AI sedang mengekstrak informasi dari dokumen Anda</div>
             </div>
         </div>
+
         <script>
             const uploadArea = document.getElementById('uploadArea');
             const fileInput = document.getElementById('fotoFile');
@@ -87,18 +133,19 @@
 
             uploadArea.addEventListener('dragover', (e) => {
                 e.preventDefault();
-                uploadArea.classList.add('dragover');
+                uploadArea.classList.add('border-indigo-400', 'bg-indigo-50');
             });
-            uploadArea.addEventListener('dragleave', () => uploadArea.classList.remove('dragover'));
+            uploadArea.addEventListener('dragleave', () => {
+                uploadArea.classList.remove('border-indigo-400', 'bg-indigo-50');
+            });
             uploadArea.addEventListener('drop', (e) => {
                 e.preventDefault();
-                uploadArea.classList.remove('dragover');
+                uploadArea.classList.remove('border-indigo-400', 'bg-indigo-50');
                 if (e.dataTransfer.files.length > 0) handleFileSelect(e.dataTransfer.files[0]);
             });
             fileInput.addEventListener('change', (e) => {
                 if (e.target.files.length > 0) handleFileSelect(e.target.files[0]);
             });
-            uploadArea.addEventListener('click', () => fileInput.click());
 
             function handleFileSelect(file) {
                 if (!file.type.startsWith('image/')) {
@@ -115,9 +162,10 @@
                     document.getElementById('fileName').textContent = file.name;
                     document.getElementById('fileSize').textContent = formatFileSize(file.size);
                     document.getElementById('fileType').textContent = file.type;
-                    uploadArea.style.display = 'none';
-                    previewArea.style.display = 'block';
-                    formActions.style.display = 'flex';
+                    uploadArea.classList.add('hidden');
+                    previewArea.classList.remove('hidden');
+                    formActions.classList.remove('hidden');
+                    formActions.classList.add('flex');
                 };
                 reader.readAsDataURL(file);
             }
@@ -132,18 +180,19 @@
 
             function resetForm() {
                 fileInput.value = '';
-                uploadArea.style.display = 'block';
-                previewArea.style.display = 'none';
-                formActions.style.display = 'none';
+                uploadArea.classList.remove('hidden');
+                previewArea.classList.add('hidden');
+                formActions.classList.add('hidden');
+                formActions.classList.remove('flex');
                 previewImage.src = '';
             }
 
             uploadForm.addEventListener('submit', () => {
-                processingOverlay.style.display = 'flex';
+                processingOverlay.classList.remove('hidden');
+                processingOverlay.classList.add('flex');
             });
         </script>
+
     </th:block>
-
 </body>
-
 </html>

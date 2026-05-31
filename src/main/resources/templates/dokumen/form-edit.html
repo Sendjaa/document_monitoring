@@ -1,98 +1,101 @@
 <!DOCTYPE html>
 <html lang="id" xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
-
 <body th:replace="~{layout/app :: page('Edit Dokumen', ~{::page-content}, ~{fragments/empty :: empty})}">
 
     <th:block th:fragment="page-content">
-        <div class="page-header">
+
+        <!-- Page Header -->
+        <div class="flex justify-between items-center mb-6">
             <div>
-                <h1 class="page-title">Edit Dokumen</h1>
-                <p class="page-subtitle">Perbarui informasi dokumen yang ada</p>
+                <h1 class="text-2xl font-bold text-slate-800">Edit Dokumen</h1>
+                <p class="text-sm text-slate-500 mt-1">Perbarui informasi dokumen yang ada</p>
             </div>
         </div>
 
-        <div class="content-card">
-            <div class="document-info" style="background:#f8fafc;padding:16px;border-radius:12px;margin-bottom:20px;border-left:4px solid var(--primary);">
-                <h3 style="font-size:14px;font-weight:600;margin-bottom:4px;">Informasi Dokumen Saat Ini</h3>
-                <p style="font-size:13px;color:var(--text-muted);">ID: <span th:text="${dokumenId}">-</span></p>
-            </div>
+        <!-- Card -->
+        <div class="bg-white rounded-2xl shadow-sm p-6">
 
-            <form th:action="@{/dokumen/edit/{id}(id=${dokumenId})}" th:object="${dokumenDTO}" method="post" enctype="multipart/form-data">
+            <form th:action="@{/dokumen/edit/{id}(id=${dokumenId})}" th:object="${dokumenDTO}" method="post" enctype="multipart/form-data" class="space-y-5">
 
-                <div class="form-group">
-                    <label for="namaDokumen">Nama Dokumen *</label>
+                <!-- Nama Dokumen -->
+                <div>
+                    <label for="namaDokumen" class="block text-sm font-semibold text-slate-700 mb-1">Nama Dokumen *</label>
                     <input type="text" id="namaDokumen" th:field="*{namaDokumen}"
-                        th:classappend="${#fields.hasErrors('namaDokumen')} ? 'has-error' : ''" required>
-                    <div th:if="${#fields.hasErrors('namaDokumen')}" class="error-message" th:errors="*{namaDokumen}"></div>
+                        class="w-full px-3 py-2.5 border border-slate-200 rounded-lg text-sm focus:outline-none focus:border-indigo-500 transition"
+                        th:classappend="${#fields.hasErrors('namaDokumen')} ? ' border-red-400' : ''" required>
+                    <div th:if="${#fields.hasErrors('namaDokumen')}" class="text-xs text-red-500 mt-1" th:errors="*{namaDokumen}"></div>
                 </div>
 
                 <!-- Jenis Dokumen -->
-                <div class="form-group">
-                    <label>Jenis Dokumen *</label>
-                    <div style="display:flex;gap:12px;margin-top:6px;">
+                <div>
+                    <label class="block text-sm font-semibold text-slate-700 mb-2">Jenis Dokumen *</label>
+                    <div class="flex gap-3">
                         <button type="button" id="btn-pribadi" onclick="pilihJenis('PRIBADI')"
-                            style="flex:1;padding:14px 10px;border:2px solid #e2e8f0;border-radius:10px;background:#fff;cursor:pointer;font-size:14px;font-weight:600;color:#64748b;transition:all 0.2s;display:flex;align-items:center;justify-content:center;gap:8px;">
-                            <i class="bi bi-person-fill" style="font-size:18px;"></i> Pribadi
+                            class="flex-1 flex items-center justify-center gap-2 py-3 px-4 border-2 border-slate-200 rounded-xl bg-white text-sm font-semibold text-slate-500 cursor-pointer transition hover:border-indigo-400">
+                            <i class="bi bi-person-fill text-lg"></i> Pribadi
                         </button>
                         <button type="button" id="btn-bersama" onclick="pilihJenis('BERSAMA')"
-                            style="flex:1;padding:14px 10px;border:2px solid #e2e8f0;border-radius:10px;background:#fff;cursor:pointer;font-size:14px;font-weight:600;color:#64748b;transition:all 0.2s;display:flex;align-items:center;justify-content:center;gap:8px;">
-                            <i class="bi bi-people-fill" style="font-size:18px;"></i> Bersama
+                            class="flex-1 flex items-center justify-center gap-2 py-3 px-4 border-2 border-slate-200 rounded-xl bg-white text-sm font-semibold text-slate-500 cursor-pointer transition hover:border-indigo-400">
+                            <i class="bi bi-people-fill text-lg"></i> Bersama
                         </button>
                     </div>
                     <input type="hidden" id="jenisDokumen" name="jenisDokumen" value="" />
                 </div>
 
                 <!-- Sub-Kategori Pribadi -->
-                <div id="section-subkat-pribadi" style="display:none;">
-                    <div class="form-group">
-                        <label>Kategori Dokumen *</label>
-                        <div style="display:flex;flex-wrap:wrap;gap:8px;margin-top:6px;">
-                            <button type="button" class="chip-subkat" data-subkat="Identitas" onclick="pilihSubKat(this)"
-                                style="padding:8px 16px;border:2px solid #e2e8f0;border-radius:20px;background:#fff;cursor:pointer;font-size:13px;font-weight:500;color:#475569;transition:all 0.2s;">
-                                <i class="bi bi-card-text"></i> Identitas</button>
-                            <button type="button" class="chip-subkat" data-subkat="Pendidikan" onclick="pilihSubKat(this)"
-                                style="padding:8px 16px;border:2px solid #e2e8f0;border-radius:20px;background:#fff;cursor:pointer;font-size:13px;font-weight:500;color:#475569;transition:all 0.2s;">
-                                <i class="bi bi-mortarboard"></i> Pendidikan</button>
-                            <button type="button" class="chip-subkat" data-subkat="Legalitas" onclick="pilihSubKat(this)"
-                                style="padding:8px 16px;border:2px solid #e2e8f0;border-radius:20px;background:#fff;cursor:pointer;font-size:13px;font-weight:500;color:#475569;transition:all 0.2s;">
-                                <i class="bi bi-file-earmark-text"></i> Legalitas</button>
-                            <button type="button" class="chip-subkat" data-subkat="Kendaraan" onclick="pilihSubKat(this)"
-                                style="padding:8px 16px;border:2px solid #e2e8f0;border-radius:20px;background:#fff;cursor:pointer;font-size:13px;font-weight:500;color:#475569;transition:all 0.2s;">
-                                <i class="bi bi-car-front"></i> Kendaraan</button>
-                            <button type="button" class="chip-subkat" data-subkat="Keuangan" onclick="pilihSubKat(this)"
-                                style="padding:8px 16px;border:2px solid #e2e8f0;border-radius:20px;background:#fff;cursor:pointer;font-size:13px;font-weight:500;color:#475569;transition:all 0.2s;">
-                                <i class="bi bi-wallet2"></i> Keuangan</button>
+                <div id="section-subkat-pribadi" class="hidden space-y-4">
+                    <div>
+                        <label class="block text-sm font-semibold text-slate-700 mb-2">Kategori Dokumen *</label>
+                        <div class="flex flex-wrap gap-2">
+                            <button type="button" class="chip-subkat px-4 py-2 border-2 border-slate-200 rounded-full bg-white text-sm font-medium text-slate-600 cursor-pointer transition hover:border-indigo-400"
+                                data-subkat="Identitas" onclick="pilihSubKat(this)">
+                                <i class="bi bi-card-text"></i> Identitas
+                            </button>
+                            <button type="button" class="chip-subkat px-4 py-2 border-2 border-slate-200 rounded-full bg-white text-sm font-medium text-slate-600 cursor-pointer transition hover:border-indigo-400"
+                                data-subkat="Pendidikan" onclick="pilihSubKat(this)">
+                                <i class="bi bi-mortarboard"></i> Pendidikan
+                            </button>
+                            <button type="button" class="chip-subkat px-4 py-2 border-2 border-slate-200 rounded-full bg-white text-sm font-medium text-slate-600 cursor-pointer transition hover:border-indigo-400"
+                                data-subkat="Legalitas" onclick="pilihSubKat(this)">
+                                <i class="bi bi-file-earmark-text"></i> Legalitas
+                            </button>
+                            <button type="button" class="chip-subkat px-4 py-2 border-2 border-slate-200 rounded-full bg-white text-sm font-medium text-slate-600 cursor-pointer transition hover:border-indigo-400"
+                                data-subkat="Kendaraan" onclick="pilihSubKat(this)">
+                                <i class="bi bi-car-front"></i> Kendaraan
+                            </button>
+                            <button type="button" class="chip-subkat px-4 py-2 border-2 border-slate-200 rounded-full bg-white text-sm font-medium text-slate-600 cursor-pointer transition hover:border-indigo-400"
+                                data-subkat="Keuangan" onclick="pilihSubKat(this)">
+                                <i class="bi bi-wallet2"></i> Keuangan
+                            </button>
                         </div>
                     </div>
-                    <div class="form-group" id="section-dropdown-pribadi" style="display:none;">
-                        <label for="kategoriId-pribadi">Pilih Dokumen *</label>
+                    <div id="section-dropdown-pribadi" class="hidden">
+                        <label for="kategoriId-pribadi" class="block text-sm font-semibold text-slate-700 mb-1">Pilih Dokumen *</label>
                         <select id="kategoriId-pribadi" onchange="syncKategoriId(this.value)"
-                            style="width:100%;padding:10px 12px;border:1px solid #e2e8f0;border-radius:8px;font-size:14px;">
+                            class="w-full px-3 py-2.5 border border-slate-200 rounded-lg text-sm focus:outline-none focus:border-indigo-500 transition">
                             <option value="">-- Pilih --</option>
                         </select>
                     </div>
                 </div>
 
                 <!-- Kategori Bersama -->
-                <div id="section-dropdown-bersama" style="display:none;">
-                    <div class="form-group">
-                        <label for="kategoriId-bersama">Kategori Dokumen *</label>
-                        <select id="kategoriId-bersama" onchange="syncKategoriId(this.value)"
-                            style="width:100%;padding:10px 12px;border:1px solid #e2e8f0;border-radius:8px;font-size:14px;">
-                            <option value="">-- Pilih Kategori --</option>
-                            <th:block th:each="kat : ${kategoriBersama}">
-                                <option th:value="${kat.kategoriId}" th:text="${kat.namaKategori}"
-                                    th:selected="${kat.kategoriId == dokumenDTO.kategoriId}">Kategori</option>
-                            </th:block>
-                        </select>
-                    </div>
+                <div id="section-dropdown-bersama" class="hidden">
+                    <label for="kategoriId-bersama" class="block text-sm font-semibold text-slate-700 mb-1">Kategori Dokumen *</label>
+                    <select id="kategoriId-bersama" onchange="syncKategoriId(this.value)"
+                        class="w-full px-3 py-2.5 border border-slate-200 rounded-lg text-sm focus:outline-none focus:border-indigo-500 transition">
+                        <option value="">-- Pilih Kategori --</option>
+                        <th:block th:each="kat : ${kategoriBersama}">
+                            <option th:value="${kat.kategoriId}" th:text="${kat.namaKategori}"
+                                th:selected="${kat.kategoriId == dokumenDTO.kategoriId}">Kategori</option>
+                        </th:block>
+                    </select>
                 </div>
 
                 <!-- Hidden field -->
                 <input type="hidden" id="kategoriId" th:field="*{kategoriId}" />
 
-                <!-- Data sub-group -->
-                <div id="data-subkat" style="display:none;" aria-hidden="true">
+                <!-- Data sub-group (hidden, untuk JS) -->
+                <div id="data-subkat" class="hidden" aria-hidden="true">
                     <th:block th:each="entry : ${subGroupedPribadi}">
                         <span class="subkat-group" th:attr="data-subkat=${entry.key}">
                             <th:block th:each="kat : ${entry.value}">
@@ -104,42 +107,45 @@
                 </div>
 
                 <!-- Tanggal -->
-                <div class="form-row">
-                    <div class="form-group">
-                        <label for="tanggalMulai">Tanggal Mulai *</label>
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                        <label for="tanggalMulai" class="block text-sm font-semibold text-slate-700 mb-1">Tanggal Mulai *</label>
                         <input type="date" id="tanggalMulai" th:field="*{tanggalMulai}"
-                            th:classappend="${#fields.hasErrors('tanggalMulai')} ? 'has-error' : ''" required>
-                        <div th:if="${#fields.hasErrors('tanggalMulai')}" class="error-message" th:errors="*{tanggalMulai}"></div>
+                            class="w-full px-3 py-2.5 border border-slate-200 rounded-lg text-sm focus:outline-none focus:border-indigo-500 transition"
+                            th:classappend="${#fields.hasErrors('tanggalMulai')} ? ' border-red-400' : ''" required>
+                        <div th:if="${#fields.hasErrors('tanggalMulai')}" class="text-xs text-red-500 mt-1" th:errors="*{tanggalMulai}"></div>
                     </div>
-                    <div class="form-group">
-                        <label for="tanggalBerakhir">Tanggal Berakhir *</label>
+                    <div>
+                        <label for="tanggalBerakhir" class="block text-sm font-semibold text-slate-700 mb-1">Tanggal Berakhir *</label>
                         <input type="date" id="tanggalBerakhir" th:field="*{tanggalBerakhir}"
-                            th:classappend="${#fields.hasErrors('tanggalBerakhir')} ? 'has-error' : ''" required>
-                        <div th:if="${#fields.hasErrors('tanggalBerakhir')}" class="error-message" th:errors="*{tanggalBerakhir}"></div>
+                            class="w-full px-3 py-2.5 border border-slate-200 rounded-lg text-sm focus:outline-none focus:border-indigo-500 transition"
+                            th:classappend="${#fields.hasErrors('tanggalBerakhir')} ? ' border-red-400' : ''" required>
+                        <div th:if="${#fields.hasErrors('tanggalBerakhir')}" class="text-xs text-red-500 mt-1" th:errors="*{tanggalBerakhir}"></div>
                     </div>
                 </div>
 
-                <div class="form-group">
-                    <label for="file">Update File Dokumen (Opsional)</label>
-                    <input type="file" id="file" name="file" accept=".pdf,.doc,.docx,.jpg,.jpeg,.png">
-                    <small class="text-muted" style="display:block;margin-top:4px;">Kosongkan jika tidak ingin mengubah file.</small>
+                <!-- Upload File -->
+                <div>
+                    <label for="file" class="block text-sm font-semibold text-slate-700 mb-1">Update File Dokumen (Opsional)</label>
+                    <input type="file" id="file" name="file" accept=".pdf,.doc,.docx,.jpg,.jpeg,.png"
+                        class="w-full text-sm text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-indigo-50 file:text-indigo-600 hover:file:bg-indigo-100 transition">
+                    <small class="text-xs text-slate-400 mt-1 block">Kosongkan jika tidak ingin mengubah file.</small>
                 </div>
 
-                <div class="form-actions">
-                    <button type="submit" class="btn btn-primary">
+                <!-- Actions -->
+                <div class="flex flex-wrap gap-3 pt-2">
+                    <button type="submit"
+                        class="inline-flex items-center gap-2 px-5 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-semibold rounded-lg transition">
                         <i class="bi bi-save"></i> Update Dokumen
                     </button>
-                    <a th:href="@{/dokumen}" class="btn btn-secondary">
+                    <a th:href="@{/dokumen}"
+                        class="inline-flex items-center gap-2 px-5 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-600 text-sm font-semibold rounded-lg transition">
                         <i class="bi bi-arrow-left"></i> Kembali
                     </a>
                 </div>
+
             </form>
         </div>
-
-        <style>
-            .btn-jenis-active { border-color: var(--primary,#2563eb)!important; background:#eff6ff!important; color:var(--primary,#2563eb)!important; }
-            .chip-subkat-active { border-color: var(--primary,#2563eb)!important; background:var(--primary,#2563eb)!important; color:#fff!important; }
-        </style>
 
         <script th:inline="javascript">
             var currentKategoriId = /*[[${dokumenDTO.kategoriId}]]*/ null;
@@ -153,12 +159,9 @@
                 });
             });
 
-            // ── Inisialisasi state dari kategori saat ini ────────────────────────
             (function initState() {
                 if (!currentKategoriId) return;
                 var idStr = String(currentKategoriId);
-
-                // Cek apakah ini kategori bersama
                 var selectB = document.getElementById('kategoriId-bersama');
                 for (var i = 0; i < selectB.options.length; i++) {
                     if (selectB.options[i].value == idStr) {
@@ -168,14 +171,11 @@
                         return;
                     }
                 }
-
-                // Cek kategori pribadi
                 for (var sg in subKatData) {
                     var items = subKatData[sg];
                     for (var j = 0; j < items.length; j++) {
                         if (items[j].id == idStr) {
                             pilihJenis('PRIBADI');
-                            // Klik chip yang sesuai
                             document.querySelectorAll('.chip-subkat').forEach(function(c) {
                                 if (c.getAttribute('data-subkat') === sg) { pilihSubKat(c); }
                             });
@@ -189,25 +189,29 @@
 
             function pilihJenis(jenis) {
                 document.getElementById('jenisDokumen').value = jenis;
-                document.getElementById('btn-pribadi').classList.remove('btn-jenis-active');
-                document.getElementById('btn-bersama').classList.remove('btn-jenis-active');
+                document.getElementById('btn-pribadi').classList.remove('border-indigo-500', 'bg-indigo-50', 'text-indigo-600');
+                document.getElementById('btn-bersama').classList.remove('border-indigo-500', 'bg-indigo-50', 'text-indigo-600');
                 document.getElementById('kategoriId').value = '';
                 if (jenis === 'PRIBADI') {
-                    document.getElementById('btn-pribadi').classList.add('btn-jenis-active');
-                    document.getElementById('section-subkat-pribadi').style.display = 'block';
-                    document.getElementById('section-dropdown-bersama').style.display = 'none';
-                    document.querySelectorAll('.chip-subkat').forEach(function(c) { c.classList.remove('chip-subkat-active'); });
-                    document.getElementById('section-dropdown-pribadi').style.display = 'none';
+                    document.getElementById('btn-pribadi').classList.add('border-indigo-500', 'bg-indigo-50', 'text-indigo-600');
+                    document.getElementById('section-subkat-pribadi').classList.remove('hidden');
+                    document.getElementById('section-dropdown-bersama').classList.add('hidden');
+                    document.querySelectorAll('.chip-subkat').forEach(function(c) {
+                        c.classList.remove('border-indigo-500', 'bg-indigo-600', 'text-white');
+                    });
+                    document.getElementById('section-dropdown-pribadi').classList.add('hidden');
                 } else {
-                    document.getElementById('btn-bersama').classList.add('btn-jenis-active');
-                    document.getElementById('section-dropdown-bersama').style.display = 'block';
-                    document.getElementById('section-subkat-pribadi').style.display = 'none';
+                    document.getElementById('btn-bersama').classList.add('border-indigo-500', 'bg-indigo-50', 'text-indigo-600');
+                    document.getElementById('section-dropdown-bersama').classList.remove('hidden');
+                    document.getElementById('section-subkat-pribadi').classList.add('hidden');
                 }
             }
 
             function pilihSubKat(el) {
-                document.querySelectorAll('.chip-subkat').forEach(function(c) { c.classList.remove('chip-subkat-active'); });
-                el.classList.add('chip-subkat-active');
+                document.querySelectorAll('.chip-subkat').forEach(function(c) {
+                    c.classList.remove('border-indigo-500', 'bg-indigo-600', 'text-white');
+                });
+                el.classList.add('border-indigo-500', 'bg-indigo-600', 'text-white');
                 var subkat = el.getAttribute('data-subkat');
                 var items = subKatData[subkat] || [];
                 var select = document.getElementById('kategoriId-pribadi');
@@ -219,14 +223,14 @@
                     opt.textContent = label;
                     select.appendChild(opt);
                 });
-                document.getElementById('section-dropdown-pribadi').style.display = 'block';
+                document.getElementById('section-dropdown-pribadi').classList.remove('hidden');
             }
 
             function syncKategoriId(val) {
                 document.getElementById('kategoriId').value = val;
             }
         </script>
-    </th:block>
 
+    </th:block>
 </body>
 </html>

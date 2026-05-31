@@ -23,7 +23,7 @@ public class User implements UserDetails {
     @Column(nullable = false, unique = true)
     private String email;
 
-    @Column(nullable = false)
+    @Column(nullable = true)
     private String password;
 
     private String phone;
@@ -33,6 +33,15 @@ public class User implements UserDetails {
 
     @Column(nullable = false)
     private boolean active = true;
+
+    @Column
+    private String provider = "local";
+
+    @Column
+    private String providerId;
+
+    @Column(name = "photo_url")
+    private String photoUrl;
 
     @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     private List<Dokumen> dokumenList = new ArrayList<>();
@@ -50,6 +59,13 @@ public class User implements UserDetails {
     }
 
     // Getters and Setters
+
+    public String getProvider() { return provider; }
+    public void setProvider(String provider) { this.provider = provider; }
+
+    public String getProviderId() { return providerId; }
+    public void setProviderId(String providerId) { this.providerId = providerId; }
+
     public Long getUserId() { return userId; }
     public void setUserId(Long userId) { this.userId = userId; }
 
@@ -76,6 +92,14 @@ public class User implements UserDetails {
 
     public static UserBuilder builder() {
         return new UserBuilder();
+    }
+
+    public String getPhotoUrl() {
+        return photoUrl;
+    }
+
+    public void setPhotoUrl(String photoUrl) {
+        this.photoUrl = photoUrl;
     }
 
     // Builder pattern implementation
@@ -167,4 +191,5 @@ public class User implements UserDetails {
     public List<Dokumen> viewDocuments() {
         return dokumenList;
     }
+
 }

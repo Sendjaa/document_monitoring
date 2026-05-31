@@ -34,7 +34,6 @@
         position: sticky;
         top: 0;
         height: 100vh;
-        /* overflow-y: auto; Agar menu sidebar tetap bisa di-scroll jika panjang */
       }
 
       /* Pastikan main-content tidak memaksa body untuk scroll */
@@ -43,6 +42,46 @@
         display: flex;
         flex-direction: column;
         flex: 1; /* Penting agar sidebar dan konten duduk berdampingan */
+      }
+      .page-header { display:flex; justify-content:space-between; align-items:center; margin-bottom:24px; }
+      .page-title { font-size:22px; font-weight:700; color:#1e293b; margin:0; }
+      .page-subtitle { font-size:13px; color:#64748b; margin:4px 0 0; }
+
+      .content-card { background:#fff; border-radius:16px; padding:24px; box-shadow:0 1px 4px rgba(0,0,0,0.07); }
+
+      .form-group { margin-bottom:18px; }
+      .form-group label { display:block; font-size:13px; font-weight:600; color:#374151; margin-bottom:6px; }
+      .form-group input[type="text"],
+      .form-group input[type="date"],
+      .form-group input[type="file"],
+      .form-group select {
+        width:100%; padding:10px 12px; border:1px solid #e2e8f0;
+        border-radius:8px; font-size:14px; outline:none;
+        transition:border-color 0.2s;
+      }
+      .form-group input:focus,
+      .form-group select:focus { border-color:#6366f1; }
+      .form-group input.has-error { border-color:#ef4444; }
+      .error-message { font-size:12px; color:#ef4444; margin-top:4px; }
+
+      .form-row { display:grid; grid-template-columns:1fr 1fr; gap:16px; }
+      @media(max-width:640px) { .form-row { grid-template-columns:1fr; } }
+
+      .form-actions { display:flex; gap:12px; margin-top:24px; flex-wrap:wrap; }
+
+      .btn { display:inline-flex; align-items:center; gap:8px; padding:10px 20px;
+        border-radius:8px; font-size:14px; font-weight:600; cursor:pointer;
+        border:none; text-decoration:none; transition:all 0.2s; }
+      .btn-primary { background:#6366f1; color:#fff; }
+      .btn-primary:hover { background:#4f46e5; }
+      .btn-secondary { background:#f1f5f9; color:#475569; }
+      .btn-secondary:hover { background:#e2e8f0; }
+
+      .text-muted { color:#94a3b8; }
+
+      :root {
+        --primary: #6366f1;
+        --text-muted: #94a3b8;
       }
     </style>
   </head>

@@ -17,6 +17,7 @@ import com.docmonitor.model.User;
 @RequestMapping("/auth")
 public class AuthController {
 
+    @SuppressWarnings("unused")
     private static final Logger log = LoggerFactory.getLogger(AuthController.class);
 
     private final UserService userService;

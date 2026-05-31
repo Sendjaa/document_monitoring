@@ -73,6 +73,11 @@
             <scope>runtime</scope>
         </dependency>
 
+        <!-- OAuth2 Google Login -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-oauth2-client</artifactId>
+        </dependency>
 
         <!-- Jackson -->
         <dependency>

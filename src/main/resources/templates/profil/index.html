@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="id" xmlns:th="http://www.thymeleaf.org">
+<body th:replace="~{layout/app :: page('Profil Saya', ~{::page-content}, ~{fragments/empty :: empty})}">
+
+    <th:block th:fragment="page-content">
+
+        <!-- Header -->
+        <div class="flex justify-between items-center mb-6">
+            <div>
+                <h1 class="text-2xl font-bold text-slate-800">Profil Saya</h1>
+                <p class="text-sm text-slate-500 mt-1">Kelola informasi akun Anda</p>
+            </div>
+        </div>
+
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+
+            <!-- Card Foto & Info -->
+            <div class="lg:col-span-1">
+                <div class="bg-white rounded-2xl shadow-sm border border-slate-100 p-6 flex flex-col items-center text-center">
+
+                    <!-- Foto Profil -->
+                    <div class="mb-4">
+                        <img th:if="${currentUser.photoUrl != null}"
+                             th:src="${currentUser.photoUrl}"
+                             alt="Foto Profil"
+                             class="w-24 h-24 rounded-full object-cover border-4 border-indigo-100 shadow">
+                        <div th:unless="${currentUser.photoUrl != null}"
+                             class="w-24 h-24 rounded-full bg-indigo-600 flex items-center justify-center text-white text-3xl font-bold border-4 border-indigo-100 shadow"
+                             th:text="${#strings.substring(currentUser.name, 0, 1).toUpperCase()}">U</div>
+                    </div>
+
+                    <h2 class="text-lg font-bold text-slate-800" th:text="${currentUser.name}">Nama</h2>
+                    <p class="text-sm text-slate-500 mt-1" th:text="${currentUser.email}">email</p>
+
+                    <!-- Badge Provider -->
+                    <div class="mt-3">
+                        <span th:if="${currentUser.provider == 'google'}"
+                              class="inline-flex items-center gap-1.5 px-3 py-1 bg-blue-50 text-blue-600 text-xs font-semibold rounded-full">
+                            <svg width="12" height="12" viewBox="0 0 48 48">
+                                <path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/>
+                                <path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/>
+                                <path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/>
+                                <path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/>
+                            </svg>
+                            Login dengan Google
+                        </span>
+                        <span th:unless="${currentUser.provider == 'google'}"
+                              class="inline-flex items-center gap-1.5 px-3 py-1 bg-slate-100 text-slate-600 text-xs font-semibold rounded-full">
+                            <i class="bi bi-person-fill"></i> Akun Lokal
+                        </span>
+                    </div>
+
+                    <!-- Badge Role -->
+                    <div class="mt-2">
+                        <span class="inline-flex items-center px-3 py-1 bg-indigo-50 text-indigo-600 text-xs font-semibold rounded-full"
+                              th:text="${currentUser.role}">USER</span>
+                    </div>
+
+                    <!-- Info tambahan -->
+                    <div class="mt-5 w-full border-t border-slate-100 pt-4 space-y-2 text-sm text-left">
+                        <div class="flex justify-between">
+                            <span class="text-slate-500">Status</span>
+                            <span class="font-semibold text-emerald-600" th:if="${currentUser.active}">Aktif</span>
+                            <span class="font-semibold text-red-500" th:unless="${currentUser.active}">Nonaktif</span>
+                        </div>
+                        <div class="flex justify-between" th:if="${currentUser.phone != null}">
+                            <span class="text-slate-500">Telepon</span>
+                            <span class="font-semibold text-slate-700" th:text="${currentUser.phone}">-</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Card Edit Profil -->
+            <div class="lg:col-span-2">
+                <div class="bg-white rounded-2xl shadow-sm border border-slate-100 p-6">
+                    <h3 class="text-base font-bold text-slate-800 mb-5">Edit Informasi</h3>
+
+                    <!-- Alert -->
+                    <div th:if="${success}"
+                         class="mb-4 p-3 bg-green-50 text-green-700 rounded-lg text-sm flex items-center gap-2">
+                        <i class="bi bi-check-circle"></i>
+                        <span th:text="${success}"></span>
+                    </div>
+                    <div th:if="${error}"
+                         class="mb-4 p-3 bg-red-50 text-red-700 rounded-lg text-sm flex items-center gap-2">
+                        <i class="bi bi-exclamation-circle"></i>
+                        <span th:text="${error}"></span>
+                    </div>
+
+                    <form th:action="@{/profil/update}" method="post" class="space-y-4">
+                        <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}"/>
+
+                        <!-- Nama -->
+                        <div>
+                            <label class="block text-sm font-semibold text-slate-700 mb-1">Nama Lengkap</label>
+                            <input type="text" name="name" th:value="${currentUser.name}"
+                                class="w-full px-3 py-2.5 border border-slate-200 rounded-lg text-sm focus:outline-none focus:border-indigo-500 transition"
+                                required>
+                        </div>
+
+                        <!-- Email readonly -->
+                        <div>
+                            <label class="block text-sm font-semibold text-slate-700 mb-1">Email</label>
+                            <input type="email" th:value="${currentUser.email}"
+                                class="w-full px-3 py-2.5 border border-slate-100 rounded-lg text-sm bg-slate-50 text-slate-400 cursor-not-allowed"
+                                readonly>
+                            <p class="text-xs text-slate-400 mt-1">Email tidak dapat diubah.</p>
+                        </div>
+
+                        <!-- Telepon -->
+                        <div>
+                            <label class="block text-sm font-semibold text-slate-700 mb-1">No. Telepon</label>
+                            <input type="text" name="phone" th:value="${currentUser.phone}"
+                                placeholder="08xx-xxxx-xxxx"
+                                class="w-full px-3 py-2.5 border border-slate-200 rounded-lg text-sm focus:outline-none focus:border-indigo-500 transition">
+                        </div>
+
+                        <!-- Password hanya untuk akun lokal -->
+                        <div th:unless="${currentUser.provider == 'google'}">
+                            <label class="block text-sm font-semibold text-slate-700 mb-1">Password Baru</label>
+                            <input type="password" name="password"
+                                placeholder="Kosongkan jika tidak ingin mengubah"
+                                class="w-full px-3 py-2.5 border border-slate-200 rounded-lg text-sm focus:outline-none focus:border-indigo-500 transition">
+                            <p class="text-xs text-slate-400 mt-1">Minimal 6 karakter.</p>
+                        </div>
+
+                        <!-- Info Google -->
+                        <div th:if="${currentUser.provider == 'google'}"
+                             class="p-3 bg-blue-50 border border-blue-100 rounded-lg text-xs text-blue-600 flex items-center gap-2">
+                            <i class="bi bi-info-circle"></i>
+                            Akun ini terhubung dengan Google. Password dikelola oleh Google.
+                        </div>
+
+                        <div class="pt-2">
+                            <button type="submit"
+                                class="inline-flex items-center gap-2 px-5 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-semibold rounded-lg transition">
+                                <i class="bi bi-save"></i> Simpan Perubahan
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+        </div>
+
+    </th:block>
+</body>
+</html>

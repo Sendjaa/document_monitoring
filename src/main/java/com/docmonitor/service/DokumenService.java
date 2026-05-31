@@ -177,9 +177,8 @@ public class DokumenService {
             deleteFile(dokumen.getFilePath());
         }
 
-        // 3. Hapus data anak (Foreign Key) agar tidak melanggar constraint
         // Pastikan Anda sudah inject repository yang dibutuhkan
-        notifikasiRepository.deleteByDokumen_DokumenId(id);
+        sistemPengingatRepository.deleteByDokumen_DokumenId(id);
         dokumenPesertaRepository.deleteByDokumen_DokumenId(id);
 
         // 4. Terakhir, hapus entitas dokumen

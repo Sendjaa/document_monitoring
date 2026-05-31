@@ -2,15 +2,12 @@ package com.docmonitor.controller;
 
 import com.docmonitor.dto.DokumenExtractDTO;
 import com.docmonitor.dto.DokumenRequestDTO;
-import com.docmonitor.model.Dokumen;
-import com.docmonitor.model.KategoriDokumen;
-import com.docmonitor.model.StatusDokumen;
-import com.docmonitor.model.TipeKategori;
-import com.docmonitor.model.User;
+import com.docmonitor.model.*;
 import com.docmonitor.service.DokumenService;
 import com.docmonitor.service.KategoriDokumenService;
 import com.docmonitor.service.UserService;
 import com.docmonitor.service.EmailInviteService;
+import com.docmonitor.service.GeminiVisionService;
 import jakarta.validation.Valid;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -23,6 +20,7 @@ import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
 import java.util.*;
+import java.util.stream.Collectors;
 
 @Controller
 @RequestMapping("/dokumen")
@@ -34,18 +32,19 @@ public class DokumenController {
     private final KategoriDokumenService kategoriService;
     private final UserService userService;
     private final EmailInviteService emailInviteService;
+    private final GeminiVisionService geminiVisionService;
 
-    // Constructor
     public DokumenController(DokumenService dokumenService, KategoriDokumenService kategoriService,
-            UserService userService, EmailInviteService emailInviteService) {
+            UserService userService, EmailInviteService emailInviteService, GeminiVisionService geminiVisionService) {
         this.dokumenService = dokumenService;
         this.kategoriService = kategoriService;
         this.userService = userService;
         this.emailInviteService = emailInviteService;
+        this.geminiVisionService = geminiVisionService;
     }
 
     // =============================================
-    // Helper: add grouped categories to model
+    // PRIVATE HELPERS
     // =============================================
 
     private void addCommonAttributes(Model model, User currentUser, String activeMenu) {
@@ -54,7 +53,6 @@ public class DokumenController {
         model.addAttribute("isAdmin", isAdmin);
         model.addAttribute("activeMenu", activeMenu);
 
-        // Inisialisasi default agar tidak null saat diparsing Thymeleaf
         model.addAttribute("totalUsers", 0);
         model.addAttribute("totalDokumen", 0L);
         model.addAttribute("totalKategori", 0);
@@ -71,7 +69,6 @@ public class DokumenController {
             } else {
                 model.addAttribute("totalDokumen", dokumenService.countByUser(userId));
             }
-
             model.addAttribute("dokumenAktif", dokumenService.countByStatus(StatusDokumen.AKTIF));
             model.addAttribute("dokumenAkanHabis", dokumenService.countByStatus(StatusDokumen.AKAN_HABIS));
             model.addAttribute("dokumenKadaluarsa", dokumenService.countByStatus(StatusDokumen.KADALUARSA));
@@ -81,26 +78,23 @@ public class DokumenController {
     private void addGroupedKategori(Model model) {
         List<KategoriDokumen> allKategori = kategoriService.findAll();
 
-        // Group utama: INDIVIDU (Pribadi) / BERSAMA
         Map<String, List<KategoriDokumen>> groupedKategori = new LinkedHashMap<>();
         for (TipeKategori tipe : TipeKategori.values()) {
             groupedKategori.put(tipe.getDisplayName(), new ArrayList<>());
         }
         for (KategoriDokumen k : allKategori) {
             if (k.getTipe() != null) {
-                String key = k.getTipe().getDisplayName();
-                groupedKategori.computeIfAbsent(key, k2 -> new ArrayList<>()).add(k);
+                groupedKategori.computeIfAbsent(k.getTipe().getDisplayName(), key -> new ArrayList<>()).add(k);
             }
         }
 
-        List<String> subGroupPribadi = java.util.Arrays.asList(
-                "Identitas", "Pendidikan", "Legalitas", "Kendaraan", "Keuangan");
+        List<String> subGroupPribadi = Arrays.asList("Identitas", "Pendidikan", "Legalitas", "Kendaraan", "Keuangan");
         Map<String, List<KategoriDokumen>> subGroupedPribadi = new LinkedHashMap<>();
         for (String sg : subGroupPribadi) {
             subGroupedPribadi.put(sg, new ArrayList<>());
         }
-        List<KategoriDokumen> individu = groupedKategori.getOrDefault("Individu", new ArrayList<>());
-        for (KategoriDokumen k : individu) {
+
+        for (KategoriDokumen k : groupedKategori.getOrDefault("Individu", new ArrayList<>())) {
             boolean matched = false;
             for (String sg : subGroupPribadi) {
                 if (k.getNamaKategori().startsWith(sg + " - ") || k.getNamaKategori().equalsIgnoreCase(sg)) {
@@ -109,9 +103,7 @@ public class DokumenController {
                     break;
                 }
             }
-            if (!matched) {
-                subGroupedPribadi.get("Identitas").add(k);
-            }
+            if (!matched) subGroupedPribadi.get("Identitas").add(k);
         }
 
         model.addAttribute("groupedKategori", groupedKategori);
@@ -124,117 +116,94 @@ public class DokumenController {
     }
 
     // =============================================
-    // LIST
+    // INDEX - Daftar Dokumen
     // =============================================
 
     @GetMapping
-    public String listDokumen(@AuthenticationPrincipal User currentUser,
-        @RequestParam(required = false) String keyword,
-        Model model) {
+    public String index(@AuthenticationPrincipal User currentUser,
+            @RequestParam(required = false) String keyword,
+            Model model) {
+
         log.info("Mengakses daftar dokumen untuk user: {}", currentUser.getEmail());
-        List<Dokumen> dokumenList;
-        List<Dokumen> dokumenKolaborasi; // Tambahkan ini
         boolean isAdmin = currentUser != null && "ADMIN".equalsIgnoreCase(currentUser.getRole());
 
+        List<Dokumen> dokumenPribadi;
+        List<Dokumen> dokumenBersama;
+
         if (keyword != null && !keyword.isBlank()) {
-            dokumenList = dokumenService.searchDokumen(keyword, currentUser.getUserId());
-            dokumenKolaborasi = new ArrayList<>(); // Kosongkan jika sedang search
+            // Mode search: tampilkan semua hasil tanpa pemisahan
+            List<Dokumen> hasil = dokumenService.searchDokumen(keyword, currentUser.getUserId());
+            dokumenPribadi = hasil.stream()
+                    .filter(d -> d.getKategori() == null ||
+                                 d.getKategori().getTipe() == TipeKategori.INDIVIDU)
+                    .collect(Collectors.toList());
+            dokumenBersama = hasil.stream()
+                    .filter(d -> d.getKategori() != null &&
+                                 d.getKategori().getTipe() == TipeKategori.BERSAMA)
+                    .collect(Collectors.toList());
+
         } else if (isAdmin) {
-            dokumenList = dokumenService.findAll();
-            dokumenKolaborasi = new ArrayList<>();
+            // Admin: lihat semua dokumen
+            List<Dokumen> semua = dokumenService.findAll();
+            dokumenPribadi = semua.stream()
+                    .filter(d -> d.getKategori() == null ||
+                                 d.getKategori().getTipe() == TipeKategori.INDIVIDU)
+                    .collect(Collectors.toList());
+            dokumenBersama = semua.stream()
+                    .filter(d -> d.getKategori() != null &&
+                                 d.getKategori().getTipe() == TipeKategori.BERSAMA)
+                    .collect(Collectors.toList());
+
         } else {
-            // Ambil dokumen milik sendiri
-            dokumenList = dokumenService.findByUser(currentUser.getUserId());
-            // AMBIL DOKUMEN KOLABORASI
-            dokumenKolaborasi = dokumenService.findDokumenKolaborasi(currentUser.getUserId());
+            // User biasa: pisah pribadi vs bersama
+            List<Dokumen> milikSendiri = dokumenService.findByUser(currentUser.getUserId());
+
+            dokumenPribadi = milikSendiri.stream()
+                    .filter(d -> d.getKategori() == null ||
+                                 d.getKategori().getTipe() == TipeKategori.INDIVIDU)
+                    .collect(Collectors.toList());
+
+            // Dokumen bersama milik sendiri + kolaborasi dari orang lain
+            dokumenBersama = milikSendiri.stream()
+                    .filter(d -> d.getKategori() != null &&
+                                 d.getKategori().getTipe() == TipeKategori.BERSAMA)
+                    .collect(Collectors.toList());
+
+            List<Dokumen> kolaborasi = dokumenService.findDokumenKolaborasi(currentUser.getUserId());
+            dokumenBersama.addAll(kolaborasi);
         }
 
-        model.addAttribute("dokumenList", dokumenList);
-        model.addAttribute("dokumenKolaborasi", dokumenKolaborasi); // Kirim ke View
+        model.addAttribute("dokumenList", dokumenPribadi);
+        model.addAttribute("dokumenKolaborasi", dokumenBersama);
         model.addAttribute("keyword", keyword);
         addCommonAttributes(model, currentUser, "dokumen");
         return "dokumen/list";
     }
 
     // =============================================
-    // DETAIL
+    // SHOW - Detail Dokumen
     // =============================================
 
     @GetMapping("/{id}")
-    public String detailDokumen(@PathVariable Long id, Model model,
+    public String show(@PathVariable Long id, Model model,
             @AuthenticationPrincipal User currentUser) {
         Dokumen dokumen = dokumenService.findById(id);
-        model.addAttribute("dokumen", dokumen);
-        model.addAttribute("pesertaList", dokumenService.getPesertaByDokumen(id));
         boolean isBersama = dokumen.getKategori() != null
                 && TipeKategori.BERSAMA.equals(dokumen.getKategori().getTipe());
+
+        model.addAttribute("dokumen", dokumen);
+        model.addAttribute("pesertaList", dokumenService.getPesertaByDokumen(id));
         model.addAttribute("isBersama", isBersama);
         addCommonAttributes(model, currentUser, "dokumen");
         return "dokumen/detail";
     }
 
     // =============================================
-    // PESERTA – Tambah & Hapus dari halaman Detail
-    // =============================================
-
-    @PostMapping("/{id}/peserta/tambah")
-    public String tambahPesertaDariDetail(@PathVariable Long id,
-            @RequestParam("emailPeserta") String email,
-            @AuthenticationPrincipal User currentUser,
-            RedirectAttributes redirectAttributes) {
-        try {
-            if (email == null || email.isBlank()) {
-                redirectAttributes.addFlashAttribute("errorPeserta", "Email tidak boleh kosong.");
-            } else {
-                String cleanedEmail = email.trim();
-
-                Dokumen dokumen = dokumenService.findById(id);
-
-                dokumenService.tambahPeserta(id, cleanedEmail);
-
-                List<String> penerimaEmail = List.of(cleanedEmail);
-                String token = UUID.randomUUID().toString();
-                List<String> inviteTokens = List.of(token);
-                emailInviteService.kirimUndanganPeserta(dokumen.getDokumenId(), currentUser, penerimaEmail,
-                        inviteTokens);
-
-                redirectAttributes.addFlashAttribute("successPeserta",
-                        "Peserta berhasil ditambahkan dan undangan email telah dikirim ke: " + cleanedEmail);
-            }
-        } catch (Exception e) {
-            redirectAttributes.addFlashAttribute("errorPeserta", "Gagal menambah peserta: " + e.getMessage());
-        }
-        return "redirect:/dokumen/" + id;
-    }
-
-    @PostMapping("/{id}/peserta/hapus")
-    public String hapusPesertaDariDetail(@PathVariable Long id,
-            @RequestParam("emailPeserta") String email,
-            RedirectAttributes redirectAttributes) {
-        try {
-            if (email == null || email.isBlank()) {
-                redirectAttributes.addFlashAttribute("errorPeserta", "Email peserta tidak valid.");
-            } else {
-                String cleanedEmail = email.trim();
-
-                dokumenService.hapusPeserta(id, cleanedEmail);
-
-                redirectAttributes.addFlashAttribute("successPeserta",
-                        "Peserta dengan email " + cleanedEmail + " berhasil dihapus dari dokumen ini.");
-            }
-        } catch (Exception e) {
-            log.error("Gagal menghapus peserta: ", e);
-            redirectAttributes.addFlashAttribute("errorPeserta", "Gagal menghapus peserta: " + e.getMessage());
-        }
-        return "redirect:/dokumen/" + id;
-    }
-
-    // =============================================
-    // TAMBAH MANUAL
+    // CREATE - Tambah Dokumen
     // =============================================
 
     @GetMapping("/tambah")
-    public String formTambah(Model model, @AuthenticationPrincipal User currentUser) {
+    public String create(Model model, @AuthenticationPrincipal User currentUser) {
         DokumenRequestDTO dto = new DokumenRequestDTO();
         model.addAttribute("dokumenDTO", dto);
         model.addAttribute("dokumen", dto);
@@ -245,12 +214,13 @@ public class DokumenController {
     }
 
     @PostMapping("/tambah")
-    public String prosesTambah(@Valid @ModelAttribute("dokumenDTO") DokumenRequestDTO dto,
+    public String store(@Valid @ModelAttribute("dokumenDTO") DokumenRequestDTO dto,
             BindingResult result,
             @RequestParam(value = "file", required = false) MultipartFile file,
             @AuthenticationPrincipal User currentUser,
             RedirectAttributes redirectAttributes,
             Model model) {
+
         if (result.hasErrors()) {
             model.addAttribute("dokumenId", null);
             model.addAttribute("dokumen", dto);
@@ -273,49 +243,11 @@ public class DokumenController {
     }
 
     // =============================================
-    // UPLOAD FOTO → LLM EKSTRAK
-    // =============================================
-
-    @GetMapping("/upload-foto")
-    public String formUploadFoto(Model model, @AuthenticationPrincipal User currentUser) {
-        addCommonAttributes(model, currentUser, "dokumen-upload");
-        return "dokumen/upload-foto";
-    }
-
-    @PostMapping("/upload-foto")
-    public String prosesUploadFoto(@RequestParam("fotoFile") MultipartFile fotoFile,
-            @AuthenticationPrincipal User currentUser,
-            RedirectAttributes redirectAttributes,
-            Model model) {
-        if (fotoFile.isEmpty()) {
-            model.addAttribute("error", "Harap pilih file foto dokumen!");
-            addCommonAttributes(model, currentUser, "dokumen-upload");
-            return "dokumen/upload-foto";
-        }
-        try {
-            log.info("Memulai ekstraksi LLM untuk file: {}", fotoFile.getOriginalFilename());
-            DokumenExtractDTO extracted = dokumenService.ekstrakDariGambar(fotoFile);
-
-            Dokumen saved = dokumenService.simpanDariEkstraksi(extracted, currentUser, fotoFile);
-
-            redirectAttributes.addFlashAttribute("success",
-                    "✅ Dokumen berhasil diekstrak dan disimpan! Nama: " + saved.getNamaDokumen());
-            return "redirect:/dokumen/" + saved.getDokumenId();
-
-        } catch (Exception e) {
-            log.error("Gagal proses upload foto: {}", e.getMessage());
-            model.addAttribute("error", "Gagal memproses foto: " + e.getMessage());
-            addCommonAttributes(model, currentUser, "dokumen-upload");
-            return "dokumen/upload-foto";
-        }
-    }
-
-    // =============================================
-    // EDIT
+    // EDIT - Edit Dokumen
     // =============================================
 
     @GetMapping("/edit/{id}")
-    public String formEdit(@PathVariable Long id, Model model,
+    public String edit(@PathVariable Long id, Model model,
             @AuthenticationPrincipal User currentUser) {
         Dokumen dokumen = dokumenService.findById(id);
         DokumenRequestDTO dto = new DokumenRequestDTO();
@@ -325,9 +257,8 @@ public class DokumenController {
         dto.setStatus(dokumen.getStatus());
         if (dokumen.getSistemPengingat() != null)
             dto.setIntervalHari(dokumen.getSistemPengingat().getIntervalHari());
-        if (dokumen.getKategori() != null) {
+        if (dokumen.getKategori() != null)
             dto.setKategoriId(dokumen.getKategori().getKategoriId());
-        }
 
         model.addAttribute("dokumenDTO", dto);
         model.addAttribute("dokumen", dto);
@@ -338,13 +269,14 @@ public class DokumenController {
     }
 
     @PostMapping("/edit/{id}")
-    public String prosesEdit(@PathVariable Long id,
+    public String update(@PathVariable Long id,
             @Valid @ModelAttribute("dokumenDTO") DokumenRequestDTO dto,
             BindingResult result,
             @RequestParam(value = "file", required = false) MultipartFile file,
             RedirectAttributes redirectAttributes,
             Model model,
             @AuthenticationPrincipal User currentUser) {
+
         if (result.hasErrors()) {
             model.addAttribute("dokumenId", id);
             model.addAttribute("dokumen", dto);
@@ -367,12 +299,11 @@ public class DokumenController {
     }
 
     // =============================================
-    // HAPUS
+    // DESTROY - Hapus Dokumen
     // =============================================
 
     @PostMapping("/hapus/{id}")
-    public String hapusDokumen(@PathVariable Long id,
-            RedirectAttributes redirectAttributes) {
+    public String destroy(@PathVariable Long id, RedirectAttributes redirectAttributes) {
         try {
             dokumenService.hapusDokumen(id);
             redirectAttributes.addFlashAttribute("success", "Dokumen berhasil dihapus.");
@@ -383,37 +314,116 @@ public class DokumenController {
     }
 
     // =============================================
-    // ENDPOINT DOWNLOAD & PRATINJAU MEDIA
+    // PESERTA - Tambah & Hapus
+    // =============================================
+
+    @PostMapping("/{id}/peserta/tambah")
+    public String tambahPeserta(@PathVariable Long id,
+            @RequestParam("emailPeserta") String email,
+            @AuthenticationPrincipal User currentUser,
+            RedirectAttributes redirectAttributes) {
+        try {
+            if (email == null || email.isBlank()) {
+                redirectAttributes.addFlashAttribute("errorPeserta", "Email tidak boleh kosong.");
+            } else {
+                String cleanedEmail = email.trim();
+                Dokumen dokumen = dokumenService.findById(id);
+                dokumenService.tambahPeserta(id, cleanedEmail);
+                String token = UUID.randomUUID().toString();
+                emailInviteService.kirimUndanganPeserta(dokumen.getDokumenId(), currentUser,
+                        List.of(cleanedEmail), List.of(token));
+                redirectAttributes.addFlashAttribute("successPeserta",
+                        "Peserta berhasil ditambahkan dan undangan dikirim ke: " + cleanedEmail);
+            }
+        } catch (Exception e) {
+            redirectAttributes.addFlashAttribute("errorPeserta", "Gagal menambah peserta: " + e.getMessage());
+        }
+        return "redirect:/dokumen/" + id;
+    }
+
+    @PostMapping("/{id}/peserta/hapus")
+    public String hapusPeserta(@PathVariable Long id,
+            @RequestParam("emailPeserta") String email,
+            RedirectAttributes redirectAttributes) {
+        try {
+            if (email == null || email.isBlank()) {
+                redirectAttributes.addFlashAttribute("errorPeserta", "Email peserta tidak valid.");
+            } else {
+                dokumenService.hapusPeserta(id, email.trim());
+                redirectAttributes.addFlashAttribute("successPeserta",
+                        "Peserta " + email.trim() + " berhasil dihapus.");
+            }
+        } catch (Exception e) {
+            log.error("Gagal menghapus peserta: ", e);
+            redirectAttributes.addFlashAttribute("errorPeserta", "Gagal menghapus peserta: " + e.getMessage());
+        }
+        return "redirect:/dokumen/" + id;
+    }
+
+    // =============================================
+    // UPLOAD FOTO → LLM EKSTRAK
+    // =============================================
+
+    @GetMapping("/upload-foto")
+    public String uploadFotoForm(Model model, @AuthenticationPrincipal User currentUser) {
+        addCommonAttributes(model, currentUser, "dokumen-upload");
+        return "dokumen/upload-foto";
+    }
+
+    @PostMapping("/upload-foto")
+    public String uploadFotoProses(@RequestParam("fotoFile") MultipartFile fotoFile,
+            @AuthenticationPrincipal User currentUser,
+            RedirectAttributes redirectAttributes,
+            Model model) {
+        if (fotoFile.isEmpty()) {
+            model.addAttribute("error", "Harap pilih file foto dokumen!");
+            addCommonAttributes(model, currentUser, "dokumen-upload");
+            return "dokumen/upload-foto";
+        }
+        try {
+            log.info("Memulai ekstraksi LLM untuk file: {}", fotoFile.getOriginalFilename());
+            DokumenExtractDTO extracted = geminiVisionService.ekstrakDariGambar(fotoFile);
+            Dokumen saved = dokumenService.simpanDariEkstraksi(extracted, currentUser, fotoFile);
+            redirectAttributes.addFlashAttribute("success",
+                    "Dokumen berhasil diekstrak dan disimpan: " + saved.getNamaDokumen());
+            return "redirect:/dokumen/" + saved.getDokumenId();
+        } catch (Exception e) {
+            log.error("Gagal proses upload foto: {}", e.getMessage());
+            model.addAttribute("error", "Gagal memproses foto: " + e.getMessage());
+            addCommonAttributes(model, currentUser, "dokumen-upload");
+            return "dokumen/upload-foto";
+        }
+    }
+
+    // =============================================
+    // DOWNLOAD & PRATINJAU FILE
     // =============================================
 
     @GetMapping("/download/{id}")
     @ResponseBody
-    public org.springframework.http.ResponseEntity<org.springframework.core.io.Resource> downloadDokumen(
+    public org.springframework.http.ResponseEntity<org.springframework.core.io.Resource> download(
             @PathVariable Long id) {
         try {
             Dokumen dokumen = dokumenService.findById(id);
-            if (dokumen == null || dokumen.getFilePath() == null) {
+            if (dokumen.getFilePath() == null)
                 return org.springframework.http.ResponseEntity.notFound().build();
-            }
 
             java.nio.file.Path path = java.nio.file.Paths.get(dokumen.getFilePath());
-            org.springframework.core.io.Resource resource = new org.springframework.core.io.UrlResource(path.toUri());
+            org.springframework.core.io.Resource resource =
+                    new org.springframework.core.io.UrlResource(path.toUri());
 
             if (!resource.exists() || !resource.isReadable()) {
-                log.error("File tidak ditemukan atau tidak dapat dibaca di path: {}", dokumen.getFilePath());
+                log.error("File tidak dapat dibaca: {}", dokumen.getFilePath());
                 return org.springframework.http.ResponseEntity.notFound().build();
             }
 
-            String contentType = null;
+            String contentType;
             try {
                 contentType = java.nio.file.Files.probeContentType(path);
             } catch (java.io.IOException ex) {
-                log.warn("Gagal mendeteksi content type berkas, fallback ke default stream.");
+                contentType = null;
             }
-
-            if (contentType == null) {
-                contentType = "application/octet-stream";
-            }
+            if (contentType == null) contentType = "application/octet-stream";
 
             return org.springframework.http.ResponseEntity.ok()
                     .contentType(org.springframework.http.MediaType.parseMediaType(contentType))
@@ -422,7 +432,7 @@ public class DokumenController {
                     .body(resource);
 
         } catch (Exception e) {
-            log.error("Gagal memproses pratinjau berkas id: {}", id, e);
+            log.error("Gagal download file id: {}", id, e);
             return org.springframework.http.ResponseEntity
                     .status(org.springframework.http.HttpStatus.INTERNAL_SERVER_ERROR).build();
         }
