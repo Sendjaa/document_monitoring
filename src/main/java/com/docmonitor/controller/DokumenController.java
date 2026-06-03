@@ -9,6 +9,8 @@ import com.docmonitor.service.UserService;
 import com.docmonitor.service.EmailInviteService;
 import com.docmonitor.service.GeminiVisionService;
 import jakarta.validation.Valid;
+
+import org.apache.el.stream.Stream;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -328,10 +330,12 @@ public class DokumenController {
             } else {
                 String cleanedEmail = email.trim();
                 Dokumen dokumen = dokumenService.findById(id);
-                dokumenService.tambahPeserta(id, cleanedEmail);
-                String token = UUID.randomUUID().toString();
-                emailInviteService.kirimUndanganPeserta(dokumen.getDokumenId(), currentUser,
-                        List.of(cleanedEmail), List.of(token));
+                DokumenPeserta peserta = dokumenService.tambahPeserta(id, cleanedEmail);
+
+                if (peserta != null && !peserta.isAccepted()) {
+                    emailInviteService.kirimUndanganPeserta(dokumen.getDokumenId(), currentUser,
+                            List.of(cleanedEmail), List.of(peserta.getInviteToken()));
+                }
                 redirectAttributes.addFlashAttribute("successPeserta",
                         "Peserta berhasil ditambahkan dan undangan dikirim ke: " + cleanedEmail);
             }

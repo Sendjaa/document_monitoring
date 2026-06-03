@@ -18,7 +18,6 @@ public class DashboardController {
 
     private final DokumenService dokumenService;
 
-    // Constructor
     public DashboardController(DokumenService dokumenService) {
         this.dokumenService = dokumenService;
     }

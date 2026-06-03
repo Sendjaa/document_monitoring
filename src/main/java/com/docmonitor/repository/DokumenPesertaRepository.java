@@ -1,6 +1,7 @@
 package com.docmonitor.repository;
 
 import com.docmonitor.model.DokumenPeserta;
+// import com.docmonitor.model.KategoriDokumen;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.stereotype.Repository;
@@ -19,4 +20,5 @@ public interface DokumenPesertaRepository extends JpaRepository<DokumenPeserta, 
     Optional<DokumenPeserta> findByInviteToken(String inviteToken);
     List<DokumenPeserta> findByUser_UserIdAndAcceptedTrue(Long userId);
     List<DokumenPeserta> findByEmailPesertaAndAcceptedFalse(String emailPeserta);
+    Optional<DokumenPeserta> findByDokumen_DokumenIdAndEmailPeserta(Long dokumenId, String email);
 }

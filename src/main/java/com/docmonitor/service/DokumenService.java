@@ -27,6 +27,7 @@ public class DokumenService {
     @Value("${app.upload.dir}")
     private String uploadDir;
 
+    private final UserRepository userRepository;
     private final DokumenRepository dokumenRepository;
     private final KategoriDokumenRepository kategoriRepository;
     private final SistemPengingatRepository sistemPengingatRepository;
@@ -39,6 +40,7 @@ public class DokumenService {
             KategoriDokumenRepository kategoriRepository, SistemPengingatRepository sistemPengingatRepository,
             GeminiVisionService geminiVisionService, DokumenPesertaRepository dokumenPesertaRepository,
             EmailInviteService emailInviteService) {
+        this.userRepository = userRepository;
         this.dokumenRepository = dokumenRepository;
         this.kategoriRepository = kategoriRepository;
         this.sistemPengingatRepository = sistemPengingatRepository;
@@ -112,12 +114,11 @@ public class DokumenService {
             KategoriDokumen kategori = kategoriRepository
                     .findByNamaKategoriIgnoreCase(extractDTO.getNamaKategori())
                     .orElseGet(() -> {
-                        KategoriDokumen newKat = KategoriDokumen.builder()
+                        return kategoriRepository.save(KategoriDokumen.builder()
                                 .namaKategori(extractDTO.getNamaKategori())
                                 .deskripsi("Dibuat otomatis dari ekstraksi LLM")
                                 .tipe(TipeKategori.INDIVIDU)
-                                .build();
-                        return kategoriRepository.save(newKat);
+                                .build());
                     });
             dokumen.setKategori(kategori);
         }
@@ -180,8 +181,8 @@ public class DokumenService {
         // Pastikan Anda sudah inject repository yang dibutuhkan
         sistemPengingatRepository.deleteByDokumen_DokumenId(id);
         dokumenPesertaRepository.deleteByDokumen_DokumenId(id);
+        notifikasiRepository.deleteByDokumen_DokumenId(id);
 
-        // 4. Terakhir, hapus entitas dokumen
         dokumenRepository.delete(dokumen);
 
         log.info("Dokumen ID={} beserta data terkait berhasil dihapus", id);
@@ -252,11 +253,24 @@ public class DokumenService {
         return dokumenPesertaRepository.findByDokumen_DokumenId(dokumenId);
     }
 
-    public void tambahPeserta(Long dokumenId, String email) {
+    public DokumenPeserta tambahPeserta(Long dokumenId, String email) {
         Dokumen dokumen = findById(dokumenId);
         if (!dokumenPesertaRepository.existsByDokumen_DokumenIdAndEmailPeserta(dokumenId, email)) {
-            dokumenPesertaRepository.save(new DokumenPeserta(dokumen, email, null));
+            DokumenPeserta peserta = new DokumenPeserta(dokumen, email, null);
+            String token = UUID.randomUUID().toString();
+            peserta.setInviteToken(token);
+
+            userRepository.findByEmail(email).ifPresent(u -> {
+                peserta.setUser(u);
+                peserta.setAccepted(true);
+            });
+            return dokumenPesertaRepository.save(peserta);
+            // dokumenPesertaRepository.save(new DokumenPeserta(dokumen, email, null));
         }
+        return dokumenPesertaRepository.findByDokumen_DokumenId(dokumenId).stream()
+                .filter(p -> p.getEmailPeserta().equalsIgnoreCase(email))
+                .findFirst()
+                .orElseThrow(() -> new RuntimeException("Gagal tambah peserta, data tidak konsisten: " + email));
     }
 
     @Transactional
