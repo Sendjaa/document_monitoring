@@ -77,6 +77,8 @@ public class UserService implements UserDetailsService {
 
         User saved = userRepository.save(user);
         log.info("User baru terdaftar: {}", saved.getEmail());
+        // Otomatis hubungkan semua undangan dokumen yang dikirim ke email ini
+        hubungkanDokumenSetelahRegister(saved);
         return saved;
     }
 

@@ -10,7 +10,7 @@ import com.docmonitor.service.EmailInviteService;
 import com.docmonitor.service.GeminiVisionService;
 import jakarta.validation.Valid;
 
-import org.apache.el.stream.Stream;
+// import org.apache.el.stream.Stream;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -332,7 +332,8 @@ public class DokumenController {
                 Dokumen dokumen = dokumenService.findById(id);
                 DokumenPeserta peserta = dokumenService.tambahPeserta(id, cleanedEmail);
 
-                if (peserta != null && !peserta.isAccepted()) {
+                // Kirim email undangan selalu (baik user sudah terdaftar maupun belum)
+                if (peserta != null && peserta.getInviteToken() != null) {
                     emailInviteService.kirimUndanganPeserta(dokumen.getDokumenId(), currentUser,
                             List.of(cleanedEmail), List.of(peserta.getInviteToken()));
                 }
@@ -439,6 +440,40 @@ public class DokumenController {
             log.error("Gagal download file id: {}", id, e);
             return org.springframework.http.ResponseEntity
                     .status(org.springframework.http.HttpStatus.INTERNAL_SERVER_ERROR).build();
+        }
+    }
+
+    // =============================================
+    // ACCEPT INVITE - Terima Undangan Dokumen Bersama
+    // =============================================
+
+    @GetMapping("/accept-invite")
+    public String acceptInvite(@RequestParam("token") String token,
+            @AuthenticationPrincipal User currentUser,
+            RedirectAttributes redirectAttributes) {
+        try {
+            com.docmonitor.model.DokumenPeserta peserta = dokumenService.getPesertaByToken(token);
+            if (peserta == null) {
+                redirectAttributes.addFlashAttribute("error", "Token undangan tidak valid atau sudah digunakan.");
+                return "redirect:/dokumen";
+            }
+
+            // Jika user belum login, arahkan ke login dulu lalu kembali ke link ini
+            if (currentUser == null) {
+                return "redirect:/auth/login?inviteToken=" + token;
+            }
+
+            // Hubungkan ke user yang sedang login dan tandai accepted
+            peserta.setUser(currentUser);
+            peserta.setAccepted(true);
+            dokumenService.simpanPeserta(peserta);
+            redirectAttributes.addFlashAttribute("success",
+                    "Anda berhasil bergabung ke dokumen: " + peserta.getDokumen().getNamaDokumen());
+            return "redirect:/dokumen/" + peserta.getDokumen().getDokumenId();
+        } catch (Exception e) {
+            log.error("Gagal accept invite: {}", e.getMessage());
+            redirectAttributes.addFlashAttribute("error", "Gagal menerima undangan: " + e.getMessage());
+            return "redirect:/dokumen";
         }
     }
 }

@@ -34,12 +34,13 @@ public class DokumenService {
     private final GeminiVisionService geminiVisionService;
     private final DokumenPesertaRepository dokumenPesertaRepository;
     private final EmailInviteService emailInviteService;
+    private final NotifikasiRepository notifikasiRepository;
 
     // Constructor
     public DokumenService(DokumenRepository dokumenRepository, UserRepository userRepository,
             KategoriDokumenRepository kategoriRepository, SistemPengingatRepository sistemPengingatRepository,
             GeminiVisionService geminiVisionService, DokumenPesertaRepository dokumenPesertaRepository,
-            EmailInviteService emailInviteService) {
+            EmailInviteService emailInviteService, NotifikasiRepository notifikasiRepository) {
         this.userRepository = userRepository;
         this.dokumenRepository = dokumenRepository;
         this.kategoriRepository = kategoriRepository;
@@ -47,6 +48,7 @@ public class DokumenService {
         this.geminiVisionService = geminiVisionService;
         this.dokumenPesertaRepository = dokumenPesertaRepository;
         this.emailInviteService = emailInviteService;
+        this.notifikasiRepository = notifikasiRepository;
     }
 
     @Value("${app.scheduler.warning-days:30}")
@@ -85,7 +87,14 @@ public class DokumenService {
                     String token = UUID.randomUUID().toString();
                     DokumenPeserta peserta = new DokumenPeserta(saved, email.trim(), null);
                     peserta.setInviteToken(token);
-                    peserta.setAccepted(false);
+                    // Jika user sudah terdaftar: langsung accepted agar muncul di kolaborasi
+                    java.util.Optional<User> existingUser = userRepository.findByEmail(email.trim());
+                    if (existingUser.isPresent()) {
+                        peserta.setUser(existingUser.get());
+                        peserta.setAccepted(true);
+                    } else {
+                        peserta.setAccepted(false);
+                    }
                     dokumenPesertaRepository.save(peserta);
                     validEmails.add(email.trim());
                     validTokens.add(token);
@@ -222,10 +231,14 @@ public class DokumenService {
     // =============================================
 
     public List<Dokumen> findDokumenKolaborasi(Long userId) {
-        return dokumenPesertaRepository.findByUser_UserIdAndAcceptedTrue(userId)
+        // Ambil berdasarkan user_id yang sudah di-link dan accepted=true
+        List<Dokumen> result = new java.util.ArrayList<>(
+            dokumenPesertaRepository.findByUser_UserIdAndAcceptedTrue(userId)
                 .stream()
                 .map(DokumenPeserta::getDokumen)
-                .collect(Collectors.toList());
+                .collect(Collectors.toList())
+        );
+        return result;
     }
 
     public void updateAllStatus() {
@@ -260,12 +273,18 @@ public class DokumenService {
             String token = UUID.randomUUID().toString();
             peserta.setInviteToken(token);
 
-            userRepository.findByEmail(email).ifPresent(u -> {
-                peserta.setUser(u);
+            // Jika user sudah terdaftar: langsung hubungkan dan accepted=true
+            // sehingga dokumen langsung muncul di daftar kolaborasi mereka
+            java.util.Optional<User> existingUser = userRepository.findByEmail(email);
+            if (existingUser.isPresent()) {
+                peserta.setUser(existingUser.get());
                 peserta.setAccepted(true);
-            });
+            } else {
+                // User belum terdaftar: accepted=false, akan di-set true saat register
+                peserta.setAccepted(false);
+            }
+
             return dokumenPesertaRepository.save(peserta);
-            // dokumenPesertaRepository.save(new DokumenPeserta(dokumen, email, null));
         }
         return dokumenPesertaRepository.findByDokumen_DokumenId(dokumenId).stream()
                 .filter(p -> p.getEmailPeserta().equalsIgnoreCase(email))
@@ -308,5 +327,13 @@ public class DokumenService {
         } catch (IOException e) {
             log.warn("Gagal hapus file: {}", filePath);
         }
+    }
+
+    public DokumenPeserta getPesertaByToken(String token) {
+        return dokumenPesertaRepository.findByInviteToken(token).orElse(null);
+    }
+
+    public DokumenPeserta simpanPeserta(DokumenPeserta peserta) {
+        return dokumenPesertaRepository.save(peserta);
     }
 }

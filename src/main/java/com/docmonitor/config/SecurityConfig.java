@@ -37,7 +37,8 @@ public class SecurityConfig {
         http
             .authorizeHttpRequests(auth -> auth
                 .requestMatchers("/auth/**", "/css/**", "/js/**", "/images/**",
-                        "/webjars/**", "/h2-console/**", "/static/**").permitAll()
+                        "/webjars/**", "/h2-console/**", "/static/**",
+                        "/dokumen/accept-invite").permitAll()
                 .requestMatchers("/admin/**").hasRole("ADMIN")
                 .requestMatchers("/dokumen/download/**").authenticated()
                 .anyRequest().authenticated()

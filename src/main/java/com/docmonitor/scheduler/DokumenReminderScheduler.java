@@ -6,7 +6,7 @@ import com.docmonitor.model.SistemPengingat;
 import com.docmonitor.repository.SistemPengingatRepository;
 import com.docmonitor.service.DokumenService;
 import com.docmonitor.service.EmailInviteService;
-import com.docmonitor.service.EmailNotifikasi;
+import com.docmonitor.service.EmailInviteService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.scheduling.annotation.Scheduled;
@@ -22,16 +22,13 @@ public class DokumenReminderScheduler {
 
     private final SistemPengingatRepository pengingatRepository;
     private final DokumenService dokumenService;
-    private final EmailNotifikasi emailNotifikasi;
     private final EmailInviteService emailInviteService;
 
     // Constructor
     public DokumenReminderScheduler(SistemPengingatRepository pengingatRepository,
-                                   DokumenService dokumenService, EmailNotifikasi emailNotifikasi,
-                                   EmailInviteService emailInviteService) {
+                                   DokumenService dokumenService, EmailInviteService emailInviteService) {
         this.pengingatRepository = pengingatRepository;
         this.dokumenService = dokumenService;
-        this.emailNotifikasi = emailNotifikasi;
         this.emailInviteService = emailInviteService;
     }
 
@@ -96,7 +93,7 @@ public class DokumenReminderScheduler {
                         dokumen.getNamaDokumen(), dokumen.getSisaHari());
 
                     // Kirim email ke pemilik dokumen
-                    emailNotifikasi.kirimNotifikasi(dokumen);
+                    emailInviteService.kirimNotifikasiKePeserta(dokumen, dokumen.getUser().getEmail());
 
                     // Kirim notifikasi ke peserta (dokumen bersama)
                     List<DokumenPeserta> pesertaList = dokumenService.getPesertaByDokumen(dokumen.getDokumenId());
