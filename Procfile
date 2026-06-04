@@ -1,1 +1,1 @@
-web: java -jar target/document-monitoring-1.0.0.jar
+web: java -jar app.jar
