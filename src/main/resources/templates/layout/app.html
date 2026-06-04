@@ -120,8 +120,105 @@
         </div>
 
         <div class="flex items-center gap-3">
+          <!-- Bell Notifikasi - tampil di semua halaman -->
+          <div class="relative inline-block text-left" id="notification-wrapper">
+            <button
+              type="button"
+              id="notification-button"
+              class="relative inline-flex items-center justify-center p-2 text-gray-600 hover:text-indigo-600 bg-gray-50 hover:bg-gray-100 active:bg-gray-200 rounded-lg transition-all border border-gray-200/50 shadow-sm focus:outline-none"
+              title="Notifikasi"
+            >
+              <i class="bi bi-bell text-base"></i>
+              <span
+                th:if="${unreadCount != null and unreadCount > 0}"
+                class="absolute -top-1.5 -right-1.5 inline-flex items-center justify-center min-w-[18px] h-[18px] px-1 text-[10px] font-black text-white bg-rose-500 rounded-full ring-2 ring-white shadow-sm"
+              >
+                <span th:text="${unreadCount}">0</span>
+              </span>
+            </button>
+
+            <div
+              id="notification-dropdown"
+              class="hidden absolute right-0 mt-2 w-80 bg-white rounded-xl shadow-xl border border-gray-100 z-50 origin-top-right"
+            >
+              <div class="flex items-center justify-between px-4 py-3 border-b border-gray-100">
+                <span class="font-bold text-sm text-gray-800">Notifikasi Terbaru</span>
+                <span
+                  th:if="${unreadCount != null and unreadCount > 0}"
+                  class="text-[11px] font-medium text-rose-500 bg-rose-50 px-2 py-0.5 rounded-full"
+                >
+                  <span th:text="${unreadCount}">0</span> Baru
+                </span>
+              </div>
+
+              <div class="max-h-72 overflow-y-auto divide-y divide-gray-50">
+                <th:block th:if="${notifications != null and !#lists.isEmpty(notifications)}">
+                  <a
+                    th:each="notif : ${notifications}"
+                    th:href="@{/dokumen/{id}(id=${notif.dokumenId})}"
+                    class="flex items-start gap-3 px-4 py-3 hover:bg-slate-50 transition-colors no-underline"
+                  >
+                    <i
+                      th:class="'bi ' + ${notif.icon} + (${notif.iconClass == 'urgent'} ? ' text-rose-500' : ' text-amber-500')"
+                      class="text-sm mt-0.5 shrink-0"
+                    ></i>
+                    <div class="min-w-0">
+                      <p
+                        th:text="${notif.title}"
+                        th:classappend="${notif.iconClass == 'urgent'} ? 'text-rose-600' : 'text-amber-600'"
+                        class="text-xs font-semibold mb-0.5"
+                      ></p>
+                      <p th:text="${notif.message}" class="text-[11px] text-gray-500 line-clamp-2"></p>
+                      <span class="text-[10px] text-gray-400 block mt-1">
+                        <i class="bi bi-clock mr-1"></i>
+                        <span th:text="${notif.time}"></span>
+                      </span>
+                    </div>
+                  </a>
+                </th:block>
+
+                <div
+                  th:if="${notifications == null or #lists.isEmpty(notifications)}"
+                  class="py-8 text-center text-gray-400"
+                >
+                  <i class="bi bi-bell-slash text-2xl block mb-2 text-gray-300"></i>
+                  <span class="text-xs">Tidak ada notifikasi baru</span>
+                </div>
+              </div>
+
+              <div class="p-2 border-t border-gray-100 bg-gray-50/50 rounded-b-xl">
+                <a
+                  th:href="@{/notifikasi}"
+                  class="block text-center py-2 text-xs font-bold text-indigo-600 hover:text-indigo-700 transition-colors no-underline"
+                >
+                  Lihat Semua Notifikasi
+                </a>
+              </div>
+            </div>
+          </div>
+
+          <!-- topActions dari masing-masing halaman (tombol tambah, dll) -->
           <th:block th:replace="${topActions}"></th:block>
         </div>
+
+        <script>
+          document.addEventListener("DOMContentLoaded", function () {
+            const wrapper = document.getElementById("notification-wrapper");
+            const button = document.getElementById("notification-button");
+            const dropdown = document.getElementById("notification-dropdown");
+            if (button && dropdown) {
+              button.addEventListener("click", function (e) {
+                e.stopPropagation();
+                dropdown.classList.toggle("hidden");
+              });
+              document.addEventListener("click", function (e) {
+                if (!wrapper.contains(e.target)) {
+                  dropdown.classList.add("hidden");
+                }
+              });
+            }
+          });
+        </script>
       </header>
 
       <main class="flex-1 p-4 lg:p-8">

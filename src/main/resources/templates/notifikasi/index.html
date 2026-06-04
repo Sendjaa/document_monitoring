@@ -1,0 +1,99 @@
+<!doctype html>
+<html
+  lang="id"
+  xmlns:th="http://www.thymeleaf.org"
+  xmlns:sec="http://www.thymeleaf.org/extras/spring-security"
+>
+  <body
+    th:replace="~{layout/app :: page('Notifikasi', ~{::page-content}, ~{::top-actions})}"
+  >
+    <th:block th:fragment="top-actions"></th:block>
+
+    <th:block th:fragment="page-content">
+      <div class="max-w-3xl mx-auto">
+
+        <!-- Header -->
+        <div class="flex items-center justify-between mb-6">
+          <div>
+            <h1 class="text-xl font-bold text-gray-800">Semua Notifikasi</h1>
+            <p class="text-sm text-gray-500 mt-0.5">
+              Dokumen yang memerlukan perhatian Anda
+            </p>
+          </div>
+          <span
+            th:if="${notifList != null and !#lists.isEmpty(notifList)}"
+            class="inline-flex items-center px-3 py-1 text-xs font-bold text-rose-600 bg-rose-50 border border-rose-100 rounded-full"
+          >
+            <span th:text="${#lists.size(notifList)}"></span>&nbsp;perlu perhatian
+          </span>
+        </div>
+
+        <!-- Daftar Notifikasi -->
+        <div
+          th:if="${notifList != null and !#lists.isEmpty(notifList)}"
+          class="space-y-3"
+        >
+          <a
+            th:each="notif : ${notifList}"
+            th:href="@{/dokumen/{id}(id=${notif.dokumenId})}"
+            class="flex items-start gap-4 bg-white rounded-xl border border-gray-100 shadow-sm px-5 py-4 hover:shadow-md hover:border-indigo-100 transition-all no-underline group"
+          >
+            <!-- Icon -->
+            <div
+              th:classappend="${notif.iconClass == 'urgent'} ? 'bg-rose-50 text-rose-500' : 'bg-amber-50 text-amber-500'"
+              class="shrink-0 w-10 h-10 rounded-xl flex items-center justify-center text-lg"
+            >
+              <i th:class="'bi ' + ${notif.icon}"></i>
+            </div>
+
+            <!-- Konten -->
+            <div class="flex-1 min-w-0">
+              <div class="flex items-start justify-between gap-2">
+                <p
+                  th:text="${notif.title}"
+                  th:classappend="${notif.iconClass == 'urgent'} ? 'text-rose-600' : 'text-amber-600'"
+                  class="text-sm font-bold"
+                ></p>
+                <span
+                  th:classappend="${notif.iconClass == 'urgent'} ? 'bg-rose-50 text-rose-600 border-rose-100' : 'bg-amber-50 text-amber-600 border-amber-100'"
+                  class="shrink-0 text-[10px] font-semibold px-2 py-0.5 rounded-full border"
+                  th:text="${notif.iconClass == 'urgent'} ? 'Kadaluarsa' : (${notif.sisaHari} + ' hari lagi')"
+                ></span>
+              </div>
+              <p
+                th:text="${notif.namaDokumen}"
+                class="text-sm font-semibold text-gray-800 mt-0.5 truncate"
+              ></p>
+              <p class="text-xs text-gray-400 mt-1">
+                <i class="bi bi-calendar3 mr-1"></i>
+                Berakhir:
+                <span th:text="${notif.tanggalBerakhir}" class="font-medium text-gray-600"></span>
+              </p>
+            </div>
+
+            <i class="bi bi-chevron-right text-gray-300 group-hover:text-indigo-400 transition-colors text-sm mt-1 shrink-0"></i>
+          </a>
+        </div>
+
+        <!-- Kosong -->
+        <div
+          th:if="${notifList == null or #lists.isEmpty(notifList)}"
+          class="bg-white rounded-2xl border border-gray-100 shadow-sm py-20 text-center"
+        >
+          <div class="w-16 h-16 bg-green-50 rounded-2xl flex items-center justify-center mx-auto mb-4">
+            <i class="bi bi-check2-circle text-3xl text-green-500"></i>
+          </div>
+          <h3 class="text-base font-bold text-gray-700 mb-1">Semua Aman!</h3>
+          <p class="text-sm text-gray-400">Tidak ada dokumen yang memerlukan perhatian saat ini.</p>
+          <a
+            th:href="@{/dokumen}"
+            class="inline-flex items-center gap-2 mt-5 px-4 py-2 text-xs font-bold text-indigo-600 bg-indigo-50 hover:bg-indigo-100 rounded-lg transition-colors no-underline"
+          >
+            <i class="bi bi-folder2-open"></i> Lihat Semua Dokumen
+          </a>
+        </div>
+
+      </div>
+    </th:block>
+  </body>
+</html>

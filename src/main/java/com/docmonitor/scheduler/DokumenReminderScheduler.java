@@ -6,7 +6,7 @@ import com.docmonitor.model.SistemPengingat;
 import com.docmonitor.repository.SistemPengingatRepository;
 import com.docmonitor.service.DokumenService;
 import com.docmonitor.service.EmailInviteService;
-import com.docmonitor.service.EmailInviteService;
+// import com.docmonitor.service.EmailInviteService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.scheduling.annotation.Scheduled;

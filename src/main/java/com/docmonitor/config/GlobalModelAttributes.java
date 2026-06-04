@@ -101,21 +101,36 @@ public class GlobalModelAttributes {
         return notifications;
     }
 
-    @ModelAttribute("notifCount")
-    public int notifCount(@AuthenticationPrincipal User currentUser) {
+    @ModelAttribute("unreadCount")
+    public int unreadCount(@AuthenticationPrincipal User currentUser) {
         if (currentUser == null) return 0;
 
-        List<Dokumen> userDocs;
-        if (currentUser.getRole() != null && currentUser.getRole().equals("ADMIN")) {
-            userDocs = dokumenService.findAll();
-        } else {
-            userDocs = dokumenService.findByUser(currentUser.getUserId());
-        }
+        List<Dokumen> userDocs = getDokumenForUser(currentUser);
+        // if (currentUser.getRole() != null && currentUser.getRole().equals("ADMIN")) {
+        //     userDocs = dokumenService.findAll();
+        // } else {
+        //     userDocs = dokumenService.findByUser(currentUser.getUserId());
+        // }
 
         return (int) userDocs.stream()
                 .filter(d -> d.getStatus() != null)
                 .filter(d -> d.getStatus() == com.docmonitor.model.StatusDokumen.KADALUARSA
                         || d.getStatus() == com.docmonitor.model.StatusDokumen.AKAN_HABIS)
                 .count();
+    }
+
+    private List<Dokumen> getDokumenForUser(User currentUser) {
+        if (currentUser.getRole() != null && currentUser.getRole().equals("ADMIN")) {
+            return dokumenService.findAll();
+        }
+        List<Dokumen> result = new ArrayList<>(dokumenService.findByUser(currentUser.getUserId()));
+        // Sertakan dokumen kolaborasi (diundang sebagai peserta)
+        List<Dokumen> kolaborasi = dokumenService.findDokumenKolaborasi(currentUser.getUserId());
+        for (Dokumen k : kolaborasi) {
+            if (result.stream().noneMatch(d -> d.getDokumenId().equals(k.getDokumenId()))) {
+                result.add(k);
+            }
+        }
+        return result;  
     }
 }

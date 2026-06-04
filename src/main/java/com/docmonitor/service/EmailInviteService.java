@@ -124,15 +124,62 @@ public class EmailInviteService {
             helper.setFrom(fromEmail, fromName);
             helper.setTo(emailPeserta);
             helper.setSubject(subject);
-            helper.setText(buildReminderHtml(dokumen, emailPeserta), true);
+            helper.setText(buildReminderHtml(dokumen, emailPeserta, "Peserta"), true);
             mailSender.send(message);
         } catch (Exception e) {
             log.error("Gagal kirim notifikasi: {}", e.getMessage());
         }
     }
 
-    private String buildReminderHtml(Dokumen dokumen, String emailPeserta) {
-        // ... (sisanya tetap sama)
-        return "<html><body>...</body></html>"; // Pastikan return sesuai kebutuhan Anda
-    }
+   public String buildReminderHtml(Dokumen dokumen, String namaPenerima, String peran) {
+    String namaDokumen = dokumen.getNamaDokumen() != null ? dokumen.getNamaDokumen() : "Dokumen Tanpa Nama";
+    String tenggatWaktu = dokumen.getTanggalBerakhir() != null ? dokumen.getTanggalBerakhir().toString() : "-";
+    String urlDokumen = baseUrl + "/dokumen/" + dokumen.getDokumenId();
+
+    return "<!DOCTYPE html>" +
+           "<html>" +
+           "<head>" +
+           "    <meta charset='UTF-8'>" +
+           "    <style>" +
+           "        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; color: #333333; line-height: 1.6; background-color: #f9f9f9; margin: 0; padding: 0; }" +
+           "        .container { max-width: 600px; margin: 20px auto; background: #ffffff; padding: 30px; border-radius: 8px; box-shadow: 0 4px 10px rgba(0,0,0,0.05); border-top: 5px solid #4F46E5; }" +
+           "        .header { text-align: center; padding-bottom: 20px; border-bottom: 1px solid #eeeeee; }" +
+           "        .header h2 { color: #4F46E5; margin: 0; font-size: 24px; }" +
+           "        .content { padding: 20px 0; }" +
+           "        .greeting { font-size: 16px; font-weight: bold; color: #111111; }" +
+           "        .details-box { background-color: #F3F4F6; padding: 15px; border-radius: 6px; margin: 20px 0; border-left: 4px solid #4F46E5; }" +
+           "        .details-item { margin-bottom: 10px; font-size: 14px; }" +
+           "        .details-label { font-weight: bold; color: #4B5563; display: inline-block; width: 120px; }" +
+           "        .cta-container { text-align: center; margin: 30px 0 10px 0; }" +
+           "        .btn { background-color: #4F46E5; color: #ffffff !important; text-decoration: none; padding: 12px 24px; font-weight: bold; border-radius: 6px; display: inline-block; transition: background-color 0.2s; }" +
+           "        .btn:hover { background-color: #4338CA; }" +
+           "        .footer { text-align: center; font-size: 12px; color: #9CA3AF; margin-top: 30px; border-top: 1px solid #eeeeee; padding-top: 15px; }" +
+           "    </style>" +
+           "</head>" +
+           "<body>" +
+           "    <div class='container'>" +
+           "        <div class='header'>" +
+           "            <h2>Pengingat Dokumen</h2>" +
+           "        </div>" +
+           "        <div class='content'>" +
+           "            <p class='greeting'>Halo, " + namaPenerima + "</p>" +
+           "            <p>Ini adalah pengingat otomatis bahwa dokumen berikut memerlukan perhatian atau tindakan Anda sebagai <strong>" + peran + "</strong>.</p>" +
+           "            " +
+           "            <div class='details-box'>" +
+           "                <div class='details-item'><span class='details-label'>Nama Dokumen:</span> " + namaDokumen + "</div>" +
+           "                <div class='details-item'><span class='details-label'>Tenggat Waktu:</span> " + tenggatWaktu + "</div>" +
+           "                <div class='details-item'><span class='details-label'>Status:</span> <span style='color: #D97706; font-weight: bold;'>" + dokumen.getStatus() + "</span></div>" +
+           "            </div>" +
+           "            " +
+           "            <div class='cta-container'>" +
+           "                <a href='" + urlDokumen + "' class='btn'>Buka Dokumen</a>" +
+           "            </div>" +
+           "        </div>" +
+           "        <div class='footer'>" +
+           "            <p>Email ini dikirim secara otomatis oleh Sistem Monitoring Dokumen.<br>Mohon tidak membalas email ini.</p>" +
+           "        </div>" +
+           "    </div>" +
+           "</body>" +
+           "</html>";
+}
 }
